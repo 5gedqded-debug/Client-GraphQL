@@ -184,7 +184,7 @@ class ViewerDto(
 )
 
 @Serializable
-class BalanceUserDto(val level: Double? = null, val credits: Double? = null, val points: Double? = null)
+class BalanceUserDto(val level: Double? = null, val experience: Double? = null, val credits: Double? = null, val points: Double? = null)
 
 @Serializable
 class BalanceViewerDto(val user: BalanceUserDto? = null)
@@ -572,3 +572,12 @@ class ShortConnDto(val edges: List<ShortEdgeDto> = emptyList(), val pageInfo: Pa
 
 @Serializable
 class ShortsResponse(val shortsMangaChapters: ShortConnDto = ShortConnDto())
+
+@Serializable
+class LevelDto(val number: Int = 0, val experience: Double? = null, val totalExperience: Double? = null)
+
+@Serializable
+class LevelUsersResponse(
+    val levelUsers: List<LevelDto> = emptyList(),
+    val viewerTodayExperience: kotlinx.serialization.json.JsonElement? = null,
+)

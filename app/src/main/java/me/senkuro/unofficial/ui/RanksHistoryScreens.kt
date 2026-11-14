@@ -121,7 +121,10 @@ private fun RankRow(e: RankEntry, onUser: (String) -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(e.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f, fill = false).streamerBlur(mine))
-                e.level?.let { Text("Ур. $it", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.streamerBlur(mine, 6.dp)) }
+                e.level?.let {
+                    val openLevels = LocalOpenLevels.current
+                    Box(Modifier.streamerBlur(mine, 6.dp)) { LevelTag(it, onClick = if (mine) openLevels else null) }
+                }
             }
             e.better?.let { Text("Лучше ${"%.1f".format(java.util.Locale.US, it)}% пользователей", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Text("Прочитал(а) ${num(e.chapters)} гл. · Посмотрел(а) ${num(e.episodes)} серий", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

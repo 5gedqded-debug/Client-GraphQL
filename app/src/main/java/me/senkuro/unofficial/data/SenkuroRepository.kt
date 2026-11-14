@@ -316,10 +316,20 @@ class SenkuroRepository(private val api: SenkuroApi) {
     // ------------------------------------------------------- Аккаунт и закладки сайта
 
     /** null — токен не принят (аноним). */
+    /** Таблица уровней сайта и опыт, набранный сегодня. */
+    suspend fun levels(): LevelsInfo {
+        val r = api.execute("fetchLevelUsers", "fetchLevelUsers", buildJsonObject {}, LevelUsersResponse.serializer())
+        val today = (r.viewerTodayExperience as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()?.toLong() ?: 0L
+        return LevelsInfo(
+            r.levelUsers.map { LevelRow(it.number, it.experience?.toLong() ?: 0L, it.totalExperience?.toLong() ?: 0L) }.sortedBy { it.number },
+            today,
+        )
+    }
+
     /** Эстерии/Сенкурокоины/уровень; при любой ошибке — null (шапка просто покажет прежний текст). */
     suspend fun balance(): UserBalance? = try {
         api.execute("fetchViewerBalance", "fetchViewerBalance", buildJsonObject {}, BalanceResponse.serializer()).viewer?.user?.let {
-            UserBalance(it.credits?.toLong() ?: 0L, it.points?.toLong() ?: 0L, it.level?.toInt())
+            UserBalance(it.credits?.toLong() ?: 0L, it.points?.toLong() ?: 0L, it.level?.toInt(), it.experience?.toLong() ?: 0L)
         }
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e

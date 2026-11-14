@@ -188,7 +188,7 @@ private fun TopCard(rank: Int, user: TopUser, experience: Boolean, mine: Boolean
                     )
                     if (user.status != null) AsyncImage(model = user.status, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
-                if (user.level != null) Box(Modifier.streamerBlur(mine, 6.dp)) { LevelTag(user.level) }
+                if (user.level != null) Box(Modifier.streamerBlur(mine, 6.dp)) { LevelTag(user.level, onClick = if (mine) LocalOpenLevels.current else null) }
                 if (experience) {
                     Text(
                         (user.experience?.let { numberFormat.format(it) } ?: "0") + " XP",
@@ -219,41 +219,3 @@ private fun TopCard(rank: Int, user: TopUser, experience: Boolean, mine: Boolean
 
 private fun parseColor(value: String?): Color? =
     value?.takeIf { it.startsWith("#") }?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
-
-/** Цвет тега уровня по ступеням из CSS сайта (lvl__tag--N): шаг 5 уровней, с 65 — градиенты. */
-private fun tierBrush(level: Int): Brush {
-    val tier = (level / 5) * 5
-    fun solid(hex: Long) = Brush.linearGradient(listOf(Color(hex), Color(hex)))
-    fun grad(a: Long, b: Long) = Brush.linearGradient(listOf(Color(a), Color(b)))
-    return when {
-        tier <= 0 -> solid(0xFF6B7280)
-        tier == 5 -> solid(0xFF30BA2F)
-        tier == 10 -> solid(0xFF5177FF)
-        tier == 15 -> solid(0xFFFFB300)
-        tier == 20 -> solid(0xFFFF4848)
-        tier == 25 -> solid(0xFFB751FF)
-        tier == 30 -> solid(0xFFFF81E4)
-        tier == 35 -> solid(0xFF33A3FF)
-        tier == 40 -> solid(0xFF7751FF)
-        tier == 45 -> solid(0xFFF69F42)
-        tier == 50 -> solid(0xFF30BA2F)
-        tier == 55 -> solid(0xFF5177FF)
-        tier == 60 -> solid(0xFFFFB300)
-        tier == 65 -> grad(0xFFFF4848, 0xFF33A3FF)
-        tier == 70 -> grad(0xFFB751FF, 0xFF7751FF)
-        else -> grad(0xFFFF81E4, 0xFFF69F42)
-    }
-}
-
-@Composable
-private fun LevelTag(level: Int) {
-    Row(
-        Modifier.height(20.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.background),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(20.dp).clip(CircleShape).background(tierBrush(level)), contentAlignment = Alignment.Center) {
-            Text(level.toString(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        }
-        Text("Ур.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, end = 6.dp))
-    }
-}

@@ -56,6 +56,7 @@ import me.senkuro.unofficial.debugtools.DebugTools
 
 private object Routes {
     const val HOME = "home"
+    const val LEVELS = "levels"
     const val CATALOG = "catalog"
     const val LIBRARY = "library"
     const val DEBUG = "debug"
@@ -149,7 +150,10 @@ fun AppRoot() {
                     .padding(padding)
                     .consumeWindowInsets(padding),
             ) {
-                CompositionLocalProvider(LocalOpenUser provides { slug: String -> nav.navigate("user/" + Uri.encode(slug)) }) {
+                CompositionLocalProvider(
+                    LocalOpenUser provides { slug: String -> nav.navigate("user/" + Uri.encode(slug)) },
+                    LocalOpenLevels provides { nav.navigate(Routes.LEVELS) },
+                ) {
                 NavHost(
                     navController = nav,
                     startDestination = Routes.HOME,
@@ -171,6 +175,7 @@ fun AppRoot() {
                             )
                         }
                     }
+                    composable(Routes.LEVELS) { UnofficialTheme(dark = appDark) { LevelsScreen(onBack = { nav.popBackStack() }) } }
                     composable(Routes.CATALOG) { UnofficialTheme(dark = appDark) { CatalogScreen(onManga = openManga) } }
                     composable(Routes.LIBRARY) {
                         UnofficialTheme(dark = appDark) {
