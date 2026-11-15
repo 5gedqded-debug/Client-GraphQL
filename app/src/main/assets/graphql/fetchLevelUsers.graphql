@@ -1,0 +1,9 @@
+query fetchLevelUsers {
+  levelUsers {
+    id
+    number
+    experience
+    totalExperience
+  }
+  viewerTodayExperience
+}

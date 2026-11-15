@@ -97,7 +97,7 @@ fun ConversationsScreen(onBack: () -> Unit, onOpen: (String, String) -> Unit) {
             Modifier.fillMaxWidth().background(c.header).statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Avatar(account?.avatar, 40, account?.frame)
+            Box(Modifier.streamerBlur(radius = 14.dp)) { Avatar(account?.avatar, 40, account?.frame) }
             Text("Сообщения", Modifier.padding(start = 12.dp), fontSize = 20.sp, color = c.text)
         }
         // Поиск (пилюля)
@@ -126,15 +126,15 @@ fun ConversationsScreen(onBack: () -> Unit, onOpen: (String, String) -> Unit) {
                         Modifier.fillMaxWidth().clickable { onOpen(conv.id, conv.title) }.padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Avatar(conv.avatar, 52, conv.frame)
+                        Box(Modifier.streamerBlur(radius = 16.dp)) { Avatar(conv.avatar, 52, conv.frame) }
                         Column(Modifier.weight(1f).padding(start = 14.dp)) {
                             Column(Modifier.padding(vertical = 12.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(conv.title, Modifier.weight(1f), fontSize = 17.sp, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(conv.title, Modifier.weight(1f).streamerBlur(radius = 8.dp), fontSize = 17.sp, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(conv.date.orEmpty(), fontSize = 12.sp, color = if (conv.unread > 0) c.badge else c.sub)
                                 }
                                 Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(conv.last, Modifier.weight(1f), fontSize = 14.sp, color = c.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(conv.last, Modifier.weight(1f).streamerBlur(radius = 8.dp), fontSize = 14.sp, color = c.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     if (conv.unread > 0) Box(
                                         Modifier.padding(start = 8.dp).defaultMinSize(22.dp).clip(CircleShape).background(c.badge).padding(horizontal = 6.dp, vertical = 2.dp),
                                         contentAlignment = Alignment.Center,
@@ -188,8 +188,8 @@ fun ChatScreen(conversationId: String, title: String, onBack: () -> Unit) {
         // Шапка диалога
         Row(Modifier.fillMaxWidth().background(c.header).statusBarsPadding().padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.material3.IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "Назад", tint = c.text) }
-            messages.firstOrNull { !it.mine }.let { Avatar(it?.avatar, 40, it?.frame) }
-            Text(title, Modifier.padding(start = 12.dp), fontSize = 18.sp, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            messages.firstOrNull { !it.mine }.let { Box(Modifier.streamerBlur(radius = 14.dp)) { Avatar(it?.avatar, 40, it?.frame) } }
+            Text(title, Modifier.padding(start = 12.dp).streamerBlur(radius = 8.dp), fontSize = 18.sp, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when {
@@ -226,8 +226,8 @@ fun ChatScreen(conversationId: String, title: String, onBack: () -> Unit) {
                             Column(
                                 Modifier.widthIn(max = 300.dp).clip(shape).background(if (m.mine) c.bubbleOut else c.bubbleIn).padding(horizontal = 10.dp, vertical = 6.dp),
                             ) {
-                                if (!m.mine && first) Text(m.author, fontSize = 13.sp, color = c.green)
-                                SelectionContainer { Text(m.text, fontSize = 15.sp, color = c.text) }
+                                if (!m.mine && first) Text(m.author, Modifier.streamerBlur(radius = 6.dp), fontSize = 13.sp, color = c.green)
+                                SelectionContainer { Text(m.text, Modifier.streamerBlur(radius = 8.dp), fontSize = 15.sp, color = c.text) }
                                 Row(Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically) {
                                     if (m.mine) Text("Изменить  ", fontSize = 11.sp, color = c.green, modifier = Modifier.clickable { editing = m; text = m.text })
                                     if (m.canDelete) Text("Удалить  ", fontSize = 11.sp, color = MaterialTheme.colorScheme.error, modifier = Modifier.clickable {
@@ -248,7 +248,7 @@ fun ChatScreen(conversationId: String, title: String, onBack: () -> Unit) {
         if (error != null && messages.isNotEmpty()) Text(error!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
         editing?.let {
             Row(Modifier.fillMaxWidth().background(c.header).padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Изменение: ${it.text}", Modifier.weight(1f), fontSize = 13.sp, color = c.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("Изменение: ${it.text}", Modifier.weight(1f).streamerBlur(radius = 8.dp), fontSize = 13.sp, color = c.sub, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("Отмена", color = c.green, fontSize = 13.sp, modifier = Modifier.clickable { editing = null; text = "" })
             }
         }

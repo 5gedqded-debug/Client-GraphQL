@@ -209,11 +209,14 @@ private fun Header(p: Profile, look: me.senkuro.unofficial.data.ProfileAppearanc
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false).streamerBlur(hide),
                 )
                 look?.status?.let { AsyncImage(it, null, contentScale = ContentScale.Fit, modifier = Modifier.size(22.dp)) }
+                val openLevels = LocalOpenLevels.current
                 p.level?.let {
                     Text(
                         "Ур. $it", color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        modifier = Modifier.streamerBlur(hide, 6.dp).clip(RoundedCornerShape(10.dp)).background(accent).padding(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.streamerBlur(hide, 6.dp).clip(RoundedCornerShape(10.dp)).background(tierBrush(it))
+                            .let { m -> if (hide) m.clickable { openLevels?.invoke() } else m }
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
                     )
                 }
             }

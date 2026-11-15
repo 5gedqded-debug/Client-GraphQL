@@ -75,6 +75,7 @@ fun MangaCard(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(4.dp)
+                        .streamerBlur(radius = 4.dp)
                         .background(AppColors.Accent, RoundedCornerShape(3.dp))
                         .padding(horizontal = 4.dp, vertical = 1.dp),
                 )

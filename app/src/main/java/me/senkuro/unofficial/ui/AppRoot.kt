@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -56,6 +58,7 @@ import me.senkuro.unofficial.debugtools.DebugTools
 
 private object Routes {
     const val HOME = "home"
+    const val LEVELS = "levels"
     const val CATALOG = "catalog"
     const val LIBRARY = "library"
     const val DEBUG = "debug"
@@ -149,7 +152,10 @@ fun AppRoot() {
                     .padding(padding)
                     .consumeWindowInsets(padding),
             ) {
-                CompositionLocalProvider(LocalOpenUser provides { slug: String -> nav.navigate("user/" + Uri.encode(slug)) }) {
+                CompositionLocalProvider(
+                    LocalOpenUser provides { slug: String -> nav.navigate("user/" + Uri.encode(slug)) },
+                    LocalOpenLevels provides { nav.navigate(Routes.LEVELS) },
+                ) {
                 NavHost(
                     navController = nav,
                     startDestination = Routes.HOME,
@@ -171,6 +177,7 @@ fun AppRoot() {
                             )
                         }
                     }
+                    composable(Routes.LEVELS) { UnofficialTheme(dark = appDark) { LevelsScreen(onBack = { nav.popBackStack() }) } }
                     composable(Routes.CATALOG) { UnofficialTheme(dark = appDark) { CatalogScreen(onManga = openManga) } }
                     composable(Routes.LIBRARY) {
                         UnofficialTheme(dark = appDark) {
@@ -213,12 +220,13 @@ fun AppRoot() {
                         UnofficialTheme(dark = appDark) {
                             CardsHubScreen(
                                 onBack = { nav.popBackStack() },
-                                onShorts = { nav.navigate(Routes.SHORTS) },
+                                onMyCards = { nav.navigate(Routes.CARDS) },
+                                onCatalog = { nav.navigate(Routes.CARD_CATALOG) },
+                                onOffers = { nav.navigate(Routes.OFFERS) },
                                 onDecks = { nav.navigate(Routes.DECKS) },
                                 onPacks = { nav.navigate(Routes.PACKS) },
                                 onForge = { nav.navigate(Routes.FORGE) },
                                 onContest = { nav.navigate(Routes.CONTEST) },
-                                onShop = { nav.navigate(Routes.SHOP) },
                             )
                         }
                     }
@@ -254,11 +262,10 @@ fun AppRoot() {
                     composable(Routes.SETTINGS) {
                         UnofficialTheme(dark = appDark) {
                             SettingsScreen(
-                                onCards = { nav.navigate(Routes.CARDS) },
-                                onCardCatalog = { nav.navigate(Routes.CARD_CATALOG) },
-                                onOffers = { nav.navigate(Routes.OFFERS) },
                                 onPosts = { nav.navigate(Routes.POSTS) },
                                 onCardHub = { nav.navigate(Routes.CARD_HUB) },
+                                onShop = { nav.navigate(Routes.SHOP) },
+                                onShorts = { nav.navigate(Routes.SHORTS) },
                                 onJournal = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.API_JOURNAL) }) else null,
                                 onCapture = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.DEBUG) }) else null,
                                 onSiteVersion = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.SITE_VERSION) }) else null,
@@ -472,7 +479,21 @@ private fun BottomBar(route: String?, onSelect: (String) -> Unit, modifier: Modi
                     Box {
                         Icon(item.icon, contentDescription = item.title, tint = tint, modifier = Modifier.size(22.dp))
                         if (item.route == Routes.NOTIFICATIONS && unread > 0) {
-                            Box(Modifier.align(Alignment.TopEnd).size(8.dp).background(AppColors.Accent, androidx.compose.foundation.shape.CircleShape))
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-4).dp)
+                                    .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                    .background(AppColors.Accent, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 4.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    if (unread > 99) "99+" else unread.toString(),
+                                    color = Color.Black, fontSize = 10.sp, lineHeight = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    maxLines = 1, softWrap = false,
+                                )
+                            }
                         }
                     }
                     Text(item.title, color = tint, fontSize = 10.sp, maxLines = 1, softWrap = false)

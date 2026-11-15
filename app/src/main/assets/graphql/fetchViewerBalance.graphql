@@ -3,6 +3,7 @@ query fetchViewerBalance {
     user {
       id
       level
+      experience
       credits
       points
     }

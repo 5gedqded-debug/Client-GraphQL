@@ -194,7 +194,10 @@ private fun HomeHeader(onSearch: () -> Unit, onRefresh: () -> Unit, onLogin: () 
                     StreamerStat("Коины ", fmt(b.points), hide = true, fontSize = 11.sp)
                     b.level?.let {
                         Text(" · ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, maxLines = 1)
-                        StreamerStat("Ур. ", it.toString(), hide = true, fontSize = 11.sp)
+                        val openLevels = LocalOpenLevels.current
+                        Box(Modifier.clickable { openLevels?.invoke() }) {
+                            StreamerStat("Ур. ", it.toString(), hide = true, fontSize = 11.sp, color = levelColor(it))
+                        }
                     }
                 }
             } else Text(
