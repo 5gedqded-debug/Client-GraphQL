@@ -116,7 +116,7 @@ private fun Throwable.friendly(): String {
 // ---------------- хаб
 
 @Composable
-fun CardsHubScreen(onBack: () -> Unit, onMyCards: () -> Unit, onCatalog: () -> Unit, onOffers: () -> Unit, onShorts: () -> Unit, onDecks: () -> Unit, onPacks: () -> Unit, onForge: () -> Unit, onContest: () -> Unit, onShop: () -> Unit) {
+fun CardsHubScreen(onBack: () -> Unit, onMyCards: () -> Unit, onCatalog: () -> Unit, onOffers: () -> Unit, onDecks: () -> Unit, onPacks: () -> Unit, onForge: () -> Unit, onContest: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         Top("Карточки", onBack)
         LazyColumn(Modifier.fillMaxSize()) {
@@ -128,8 +128,6 @@ fun CardsHubScreen(onBack: () -> Unit, onMyCards: () -> Unit, onCatalog: () -> U
                 Triple("Паки карт", "Открытие паков за очки и кредиты", onPacks),
                 Triple("Кузница", "Переплавка, раскол и объединение карт", onForge),
                 Triple("Турнир карт", "Голосование за новые карточки", onContest),
-                Triple("Senkoshop", "Аватарки, рамки, баннеры, обои, статусы", onShop),
-                Triple("Shorts", "Короткая вертикальная лента глав", onShorts),
             )
             items(rows) { (t, d, go) ->
                 Column(Modifier.fillMaxWidth().clickable(onClick = go).padding(horizontal = 16.dp, vertical = 14.dp)) {

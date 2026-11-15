@@ -27,7 +27,7 @@ import me.senkuro.unofficial.data.SenkuroConfig
 
 /** Настройки: тёмная тема, режим стримера, обновления, разделы аккаунта. */
 @Composable
-fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onJournal: (() -> Unit)? = null, onCapture: (() -> Unit)? = null, onSiteVersion: (() -> Unit)? = null) {
+fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onShop: () -> Unit = {}, onShorts: () -> Unit = {}, onJournal: (() -> Unit)? = null, onCapture: (() -> Unit)? = null, onSiteVersion: (() -> Unit)? = null) {
     val dark by AppGraph.themeDark.collectAsState()
     val streamer by AppGraph.streamerMode.collectAsState()
     val token by AppGraph.auth.token.collectAsState()
@@ -121,6 +121,8 @@ fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onJourn
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionLabel("Мой аккаунт")
             TextButton(onClick = onCardHub, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Карточки") }
+            TextButton(onClick = onShop, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Senkoshop") }
+            TextButton(onClick = onShorts, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Shorts") }
         }
         if (token != null) {
             Row(

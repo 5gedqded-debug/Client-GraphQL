@@ -223,12 +223,10 @@ fun AppRoot() {
                                 onMyCards = { nav.navigate(Routes.CARDS) },
                                 onCatalog = { nav.navigate(Routes.CARD_CATALOG) },
                                 onOffers = { nav.navigate(Routes.OFFERS) },
-                                onShorts = { nav.navigate(Routes.SHORTS) },
                                 onDecks = { nav.navigate(Routes.DECKS) },
                                 onPacks = { nav.navigate(Routes.PACKS) },
                                 onForge = { nav.navigate(Routes.FORGE) },
                                 onContest = { nav.navigate(Routes.CONTEST) },
-                                onShop = { nav.navigate(Routes.SHOP) },
                             )
                         }
                     }
@@ -266,6 +264,8 @@ fun AppRoot() {
                             SettingsScreen(
                                 onPosts = { nav.navigate(Routes.POSTS) },
                                 onCardHub = { nav.navigate(Routes.CARD_HUB) },
+                                onShop = { nav.navigate(Routes.SHOP) },
+                                onShorts = { nav.navigate(Routes.SHORTS) },
                                 onJournal = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.API_JOURNAL) }) else null,
                                 onCapture = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.DEBUG) }) else null,
                                 onSiteVersion = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.SITE_VERSION) }) else null,
