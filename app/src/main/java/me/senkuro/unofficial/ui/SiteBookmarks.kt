@@ -138,7 +138,7 @@ fun SiteBookmarksTab(onManga: (MangaItem) -> Unit, onLogin: () -> Unit, vm: Site
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(acc.name, modifier = Modifier.weight(1f))
+            Text(acc.name, modifier = Modifier.weight(1f).streamerBlur())
             TextButton(onClick = AppGraph::logout) { Text("Выйти") }
         }
         LazyRow(
