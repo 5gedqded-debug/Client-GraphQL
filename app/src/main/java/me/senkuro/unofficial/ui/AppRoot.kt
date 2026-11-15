@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -477,7 +479,21 @@ private fun BottomBar(route: String?, onSelect: (String) -> Unit, modifier: Modi
                     Box {
                         Icon(item.icon, contentDescription = item.title, tint = tint, modifier = Modifier.size(22.dp))
                         if (item.route == Routes.NOTIFICATIONS && unread > 0) {
-                            Box(Modifier.align(Alignment.TopEnd).size(8.dp).background(AppColors.Accent, androidx.compose.foundation.shape.CircleShape))
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-4).dp)
+                                    .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                    .background(AppColors.Accent, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 4.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    if (unread > 99) "99+" else unread.toString(),
+                                    color = Color.Black, fontSize = 10.sp, lineHeight = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    maxLines = 1, softWrap = false,
+                                )
+                            }
                         }
                     }
                     Text(item.title, color = tint, fontSize = 10.sp, maxLines = 1, softWrap = false)
