@@ -78,7 +78,7 @@ private fun LevelsContent(data: LevelsInfo, level: Int, exp: Long) {
             Text("Прокачивай уровень и получай награды", color = muted, fontSize = 13.sp)
             Column(
                 Modifier.padding(top = 12.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant).padding(16.dp),
+                    .background(MaterialTheme.colorScheme.surfaceVariant).streamerBlur(radius = 8.dp).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Полоса прогресса: от цвета текущей ступени к цвету следующей.
