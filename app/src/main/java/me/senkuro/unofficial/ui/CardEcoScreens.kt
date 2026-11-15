@@ -116,11 +116,14 @@ private fun Throwable.friendly(): String {
 // ---------------- хаб
 
 @Composable
-fun CardsHubScreen(onBack: () -> Unit, onShorts: () -> Unit, onDecks: () -> Unit, onPacks: () -> Unit, onForge: () -> Unit, onContest: () -> Unit, onShop: () -> Unit) {
+fun CardsHubScreen(onBack: () -> Unit, onMyCards: () -> Unit, onCatalog: () -> Unit, onOffers: () -> Unit, onShorts: () -> Unit, onDecks: () -> Unit, onPacks: () -> Unit, onForge: () -> Unit, onContest: () -> Unit, onShop: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
-        Top("Карточки и магазин", onBack)
+        Top("Карточки", onBack)
         LazyColumn(Modifier.fillMaxSize()) {
             val rows = listOf(
+                Triple("Мои карточки", "Коллекция ваших карт", onMyCards),
+                Triple("Каталог карточек", "Все карточки сайта", onCatalog),
+                Triple("Обмены карточек", "Предложения обмена", onOffers),
                 Triple("Колоды", "Колоды пользователей, создание своей", onDecks),
                 Triple("Паки карт", "Открытие паков за очки и кредиты", onPacks),
                 Triple("Кузница", "Переплавка, раскол и объединение карт", onForge),

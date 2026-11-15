@@ -220,6 +220,9 @@ fun AppRoot() {
                         UnofficialTheme(dark = appDark) {
                             CardsHubScreen(
                                 onBack = { nav.popBackStack() },
+                                onMyCards = { nav.navigate(Routes.CARDS) },
+                                onCatalog = { nav.navigate(Routes.CARD_CATALOG) },
+                                onOffers = { nav.navigate(Routes.OFFERS) },
                                 onShorts = { nav.navigate(Routes.SHORTS) },
                                 onDecks = { nav.navigate(Routes.DECKS) },
                                 onPacks = { nav.navigate(Routes.PACKS) },
@@ -261,9 +264,6 @@ fun AppRoot() {
                     composable(Routes.SETTINGS) {
                         UnofficialTheme(dark = appDark) {
                             SettingsScreen(
-                                onCards = { nav.navigate(Routes.CARDS) },
-                                onCardCatalog = { nav.navigate(Routes.CARD_CATALOG) },
-                                onOffers = { nav.navigate(Routes.OFFERS) },
                                 onPosts = { nav.navigate(Routes.POSTS) },
                                 onCardHub = { nav.navigate(Routes.CARD_HUB) },
                                 onJournal = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.API_JOURNAL) }) else null,

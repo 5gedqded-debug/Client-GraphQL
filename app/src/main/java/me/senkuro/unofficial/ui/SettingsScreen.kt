@@ -27,7 +27,7 @@ import me.senkuro.unofficial.data.SenkuroConfig
 
 /** Настройки: тёмная тема, режим стримера, обновления, разделы аккаунта. */
 @Composable
-fun SettingsScreen(onCards: () -> Unit = {}, onCardCatalog: () -> Unit = {}, onOffers: () -> Unit = {}, onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onJournal: (() -> Unit)? = null, onCapture: (() -> Unit)? = null, onSiteVersion: (() -> Unit)? = null) {
+fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onJournal: (() -> Unit)? = null, onCapture: (() -> Unit)? = null, onSiteVersion: (() -> Unit)? = null) {
     val dark by AppGraph.themeDark.collectAsState()
     val streamer by AppGraph.streamerMode.collectAsState()
     val token by AppGraph.auth.token.collectAsState()
@@ -120,10 +120,7 @@ fun SettingsScreen(onCards: () -> Unit = {}, onCardCatalog: () -> Unit = {}, onO
         if (token != null) {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionLabel("Мой аккаунт")
-            TextButton(onClick = onCards, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Мои карточки") }
-            TextButton(onClick = onCardCatalog, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Каталог карточек") }
-            TextButton(onClick = onOffers, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Обмены карточек") }
-            TextButton(onClick = onCardHub, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Колоды, паки, кузница, магазин, Shorts") }
+            TextButton(onClick = onCardHub, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Карточки") }
         }
         if (token != null) {
             Row(
