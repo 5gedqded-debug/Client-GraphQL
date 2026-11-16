@@ -467,9 +467,8 @@ fun ShopScreen(onBack: () -> Unit) {
     var type by remember { mutableStateOf("AVATAR") }
     var filters by remember { mutableStateOf(ShopFilters()) }
     var showFilters by remember { mutableStateOf(false) }
-    val pager = remember(type, filters.onlyLimitedServer, filters.excludePurchasedServer) {
-        Pager { AppGraph.eco.shop(type, it, filters.onlyLimitedServer, filters.excludePurchasedServer) }
-    }
+    val server = filters.server
+    val pager = remember(type, server) { Pager { AppGraph.eco.shop(type, it, server) } }
     var buy by remember { mutableStateOf<ShopItem?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -590,6 +589,11 @@ private fun ShopFiltersDialog(value: ShopFilters, onChange: (ShopFilters) -> Uni
                 Text("Наличие", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
                 TriRow("Ограниченное количество", value.limited, "Только", "Кроме") { onChange(value.copy(limited = it)) }
                 TriRow("Куплено мной", value.owned, "Только", "Кроме") { onChange(value.copy(owned = it)) }
+                TriRow("С подпиской", value.subscription, "Только", "Кроме") { onChange(value.copy(subscription = it)) }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text("Возрастной рейтинг", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                listOf("GENERAL" to "Безопасный (0+)", "SENSITIVE" to "Сомнительный (12+)", "QUESTIONABLE" to "Спорный (16+)", "EXPLICIT" to "Откровенный (18+)")
+                    .forEach { (k, n) -> TriRow(n, value.rating(k), "Только", "Кроме") { onChange(value.withRating(k, it)) } }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Готово") } },
