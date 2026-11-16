@@ -71,6 +71,7 @@ fun MangaCard(
                     fontSize = if (compact) 8.sp else 10.sp,
                     lineHeight = if (compact) 10.sp else 12.sp,
                     maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(4.dp)

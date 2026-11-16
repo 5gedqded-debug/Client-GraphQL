@@ -1012,10 +1012,17 @@ class SenkuroRepository(private val api: SenkuroApi) {
     private fun pickTitle(titles: List<Title>?, original: Title?, slug: String): String =
         titles?.localized() ?: original?.content ?: slug
 
-    /** Оценка как пришла с сервера (без округления); пусто и ноль — оценки нет. */
-    private fun scoreText(e: JsonElement?): String? =
-        (e as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content
-            ?.takeIf { it.isNotBlank() && (it.toDoubleOrNull() ?: 1.0) != 0.0 }
+    /**
+     * Оценка как пришла с сервера: «6.5», «7» остаются как есть, длинный хвост (9.103448…) обрезается
+     * до двух знаков, как на странице тайтла («9.10»). Пусто и ноль — оценки нет.
+     */
+    private fun scoreText(e: JsonElement?): String? {
+        val raw = (e as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.trim().orEmpty()
+        val v = raw.toDoubleOrNull() ?: return null
+        if (v == 0.0) return null
+        val decimals = raw.substringAfter('.', "").length
+        return if (decimals > 2 || 'e' in raw.lowercase()) "%.2f".format(java.util.Locale.US, v) else raw
+    }
 
     private fun MangaCardDto.toItem(): MangaItem? {
         val id = id ?: return null
