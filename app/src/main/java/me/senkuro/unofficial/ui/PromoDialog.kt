@@ -60,7 +60,13 @@ fun PromoDialog(onDismiss: () -> Unit) {
                         } catch (e: CancellationException) {
                             throw e
                         } catch (e: Exception) {
-                            error = e.msg()
+                            val m = e.msg()
+                            error = when {
+                                m.contains("not found", true) -> "Промокод не найден"
+                                m.contains("already", true) || m.contains("used", true) -> "Промокод уже использован"
+                                m.contains("expire", true) -> "Срок действия промокода истёк"
+                                else -> m
+                            }
                         } finally {
                             busy = false
                         }
