@@ -470,8 +470,23 @@ fun ShopScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val me = AppGraph.account.value?.userId.orEmpty()
     LaunchedEffect(type) { pager.reload() }
+    // баланс — тем же запросом, что и на главной (fetchViewerBalance)
+    var balance by remember { mutableStateOf<UserBalance?>(null) }
+    suspend fun loadBalance() {
+        if (AppGraph.account.value == null) return
+        try { balance = AppGraph.repository.balance() }
+        catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { }
+    }
+    LaunchedEffect(Unit) { loadBalance() }
     Column(Modifier.fillMaxSize()) {
         Top("Senkoshop", onBack)
+        balance?.let { b ->
+            Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                StreamerStat("Эстерии ", shopFmt(b.credits), hide = true, fontSize = 13.sp)
+                Text(" · ", color = muted, fontSize = 13.sp, maxLines = 1)
+                StreamerStat("Коины ", shopFmt(b.points), hide = true, fontSize = 13.sp)
+            }
+        }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("AVATAR" to "Аватарки", "FRAME" to "Рамки", "BANNER" to "Баннеры", "WALLPAPER" to "Обои", "STATUS" to "Статусы").forEach { (t, n) ->
                 FilterChip(selected = type == t, onClick = { type = t }, label = { Text(n) })
@@ -510,9 +525,11 @@ fun ShopScreen(onBack: () -> Unit) {
             text = { Text("Цена: ${s.price ?: "—"}. Покупка спишет средства с аккаунта.") },
             confirmButton = { TextButton(onClick = {
                 buy = null
-                scope.launch { info = try { AppGraph.eco.buy(s.id, me); pager.reload(); "Куплено: ${s.title}" } catch (e: Exception) { e.friendly() } }
+                scope.launch { info = try { AppGraph.eco.buy(s.id, me); pager.reload(); loadBalance(); "Куплено: ${s.title}" } catch (e: Exception) { e.friendly() } }
             }) { Text("Купить") } },
             dismissButton = { TextButton(onClick = { buy = null }) { Text("Отмена") } },
         )
     }
 }
+
+private fun shopFmt(n: Long): String = "%,d".format(java.util.Locale.US, n).replace(',', ' ')
