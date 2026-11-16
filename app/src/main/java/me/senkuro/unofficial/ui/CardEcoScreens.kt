@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -464,12 +465,16 @@ fun ContestScreen(onBack: () -> Unit) {
 @Composable
 fun ShopScreen(onBack: () -> Unit) {
     var type by remember { mutableStateOf("AVATAR") }
-    val pager = remember(type) { Pager { AppGraph.eco.shop(type, it) } }
+    var filters by remember { mutableStateOf(ShopFilters()) }
+    var showFilters by remember { mutableStateOf(false) }
+    val pager = remember(type, filters.onlyLimitedServer, filters.excludePurchasedServer) {
+        Pager { AppGraph.eco.shop(type, it, filters.onlyLimitedServer, filters.excludePurchasedServer) }
+    }
     var buy by remember { mutableStateOf<ShopItem?>(null) }
     var info by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val me = AppGraph.account.value?.userId.orEmpty()
-    LaunchedEffect(type) { pager.reload() }
+    LaunchedEffect(pager) { pager.reload() }
     // баланс — тем же запросом, что и на главной (fetchViewerBalance)
     var balance by remember { mutableStateOf<UserBalance?>(null) }
     suspend fun loadBalance() {
@@ -492,12 +497,23 @@ fun ShopScreen(onBack: () -> Unit) {
                 FilterChip(selected = type == t, onClick = { type = t }, label = { Text(n) })
             }
         }
+        Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            FilterChip(
+                selected = filters.activeCount > 0, onClick = { showFilters = true },
+                label = { Text(if (filters.activeCount > 0) "Фильтры · ${filters.activeCount}" else "Фильтры") },
+            )
+            if (filters.activeCount > 0) TextButton(onClick = { filters = ShopFilters() }) { Text("Сбросить") }
+        }
         info?.let { Text(it, fontSize = 12.sp, color = muted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) }
         when {
             pager.items.isEmpty() && pager.loading -> LoadingBox()
             pager.items.isEmpty() && pager.error != null -> PagerError(pager)
             else -> LazyVerticalGrid(GridCells.Fixed(2), Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(pager.items) { s: ShopItem ->
+                val shown = pager.items.filter { filters.matches(it) }
+                if (shown.isEmpty() && pager.done) item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text("Ничего не найдено", color = muted, modifier = Modifier.padding(16.dp))
+                }
+                items(shown) { s: ShopItem ->
                     Column {
                         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                             AsyncImage(s.image, null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(6.dp))
@@ -518,6 +534,7 @@ fun ShopScreen(onBack: () -> Unit) {
             }
         }
     }
+    if (showFilters) ShopFiltersDialog(filters, onChange = { filters = it }, onDismiss = { showFilters = false })
     buy?.let { s ->
         AlertDialog(
             onDismissRequest = { buy = null },
@@ -533,3 +550,49 @@ fun ShopScreen(onBack: () -> Unit) {
 }
 
 private fun shopFmt(n: Long): String = "%,d".format(java.util.Locale.US, n).replace(',', ' ')
+
+@Composable
+private fun TriRow(label: String, value: Tri, on: String, off: String, onChange: (Tri) -> Unit) {
+    Column(Modifier.padding(vertical = 4.dp)) {
+        Text(label, fontSize = 13.sp, color = muted)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FilterChip(selected = value == Tri.OFF, onClick = { onChange(Tri.OFF) }, label = { Text("Все") })
+            FilterChip(selected = value == Tri.INCLUDE, onClick = { onChange(Tri.INCLUDE) }, label = { Text(on) })
+            FilterChip(selected = value == Tri.EXCLUDE, onClick = { onChange(Tri.EXCLUDE) }, label = { Text(off) })
+        }
+    }
+}
+
+/** Фильтры Senkoshop по цене и наличию: каждое условие можно включить в выдачу или исключить из неё. */
+@Composable
+private fun ShopFiltersDialog(value: ShopFilters, onChange: (ShopFilters) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Фильтры") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text("Цена", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                TriRow("Бесплатные", value.free, "Только", "Кроме") { onChange(value.copy(free = it)) }
+                TriRow("Со скидкой", value.discount, "Только", "Кроме") { onChange(value.copy(discount = it)) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+                    OutlinedTextField(
+                        value = value.minPrice?.toString().orEmpty(), singleLine = true, label = { Text("Цена от") },
+                        onValueChange = { t -> onChange(value.copy(minPrice = t.filter(Char::isDigit).take(7).toIntOrNull())) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = value.maxPrice?.toString().orEmpty(), singleLine = true, label = { Text("до") },
+                        onValueChange = { t -> onChange(value.copy(maxPrice = t.filter(Char::isDigit).take(7).toIntOrNull())) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Text("Наличие", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                TriRow("Ограниченное количество", value.limited, "Только", "Кроме") { onChange(value.copy(limited = it)) }
+                TriRow("Куплено мной", value.owned, "Только", "Кроме") { onChange(value.copy(owned = it)) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Готово") } },
+        dismissButton = { TextButton(onClick = { onChange(ShopFilters()) }) { Text("Сбросить") } },
+    )
+}

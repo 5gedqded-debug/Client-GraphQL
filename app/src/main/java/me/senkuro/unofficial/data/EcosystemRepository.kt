@@ -58,7 +58,7 @@ import kotlinx.serialization.json.put
 
 @Serializable class ECollectible(
     val id: String = "", val slug: String = "", val type: JsonElement? = null, val titles: List<Title>? = null,
-    val price: Int? = null, val basePrice: Int? = null, val rating: JsonElement? = null, val image: Cover? = null,
+    val price: Int? = null, val basePrice: Int? = null, val quantity: Int? = null, val rating: JsonElement? = null, val image: Cover? = null,
     val viewerCollectible: EViewerCollectible? = null,
 )
 @Serializable class EViewerCollectible(val id: String = "", val active: Boolean = false)
@@ -84,7 +84,7 @@ data class PackOpenResult(val cards: List<DroppedCard>, val needsChoice: Boolean
 data class ForgeSlots(val available: Int, val used: Int, val total: Int, val resetAt: String?)
 data class ContestCard(val id: String, val title: String, val rank: String?, val image: String?, val author: String?)
 data class Contest(val id: String, val character: String?, val rank: String?, val endAt: String?, val cards: List<ContestCard>)
-data class ShopItem(val id: String, val title: String, val type: String, val price: Int?, val basePrice: Int?, val image: String?, val owned: Boolean, val active: Boolean)
+data class ShopItem(val id: String, val title: String, val type: String, val price: Int?, val basePrice: Int?, val image: String?, val owned: Boolean, val active: Boolean, val quantity: Int? = null)
 
 /** Колоды, паки, кузница, турнир карт, магазин. Входные поля мутаций частично угаданы по соглашениям сайта. */
 class EcosystemRepository(private val api: SenkuroApi) {
@@ -225,12 +225,17 @@ class EcosystemRepository(private val api: SenkuroApi) {
 
     // ---- магазин
 
-    suspend fun shop(type: String, after: String?): Pair<List<ShopItem>, String?> {
-        val vars = buildJsonObject { put("type", type); if (after != null) put("after", after) }
+    /** [onlyLimited] / [excludePurchased] — серверные фильтры сайта; остальные фильтры применяет [ShopFilters]. */
+    suspend fun shop(type: String, after: String?, onlyLimited: Boolean = false, excludePurchased: Boolean = false): Pair<List<ShopItem>, String?> {
+        val vars = buildJsonObject {
+            put("type", type); if (after != null) put("after", after)
+            if (onlyLimited) put("onlyLimited", true)
+            if (excludePurchased) put("excludePurchased", true)
+        }
         val c = api.execute("fetchCollectibles", "fetchCollectibles", vars, ECollectiblesResponse.serializer()).collectibles
         return c.edges.map { e ->
             val n = e.node
-            ShopItem(n.id, n.titles.pick() ?: "Товар", type, n.price, n.basePrice, n.image?.original?.url, n.viewerCollectible != null, n.viewerCollectible?.active == true)
+            ShopItem(n.id, n.titles.pick() ?: "Товар", type, n.price, n.basePrice, n.image?.original?.url, n.viewerCollectible != null, n.viewerCollectible?.active == true, n.quantity)
         } to c.pageInfo.endCursor.takeIf { c.pageInfo.hasNextPage }
     }
 
