@@ -58,7 +58,7 @@ import kotlinx.serialization.json.put
 
 @Serializable class ECollectible(
     val id: String = "", val slug: String = "", val type: JsonElement? = null, val titles: List<Title>? = null,
-    val price: Int? = null, val basePrice: Int? = null, val rating: JsonElement? = null, val image: Cover? = null,
+    val price: Int? = null, val basePrice: Int? = null, val subscriptionPrice: Int? = null, val quantity: Int? = null, val rating: JsonElement? = null, val image: Cover? = null,
     val viewerCollectible: EViewerCollectible? = null,
 )
 @Serializable class EViewerCollectible(val id: String = "", val active: Boolean = false)
@@ -84,7 +84,18 @@ data class PackOpenResult(val cards: List<DroppedCard>, val needsChoice: Boolean
 data class ForgeSlots(val available: Int, val used: Int, val total: Int, val resetAt: String?)
 data class ContestCard(val id: String, val title: String, val rank: String?, val image: String?, val author: String?)
 data class Contest(val id: String, val character: String?, val rank: String?, val endAt: String?, val cards: List<ContestCard>)
-data class ShopItem(val id: String, val title: String, val type: String, val price: Int?, val basePrice: Int?, val image: String?, val owned: Boolean, val active: Boolean)
+data class ShopItem(val id: String, val title: String, val type: String, val price: Int?, val basePrice: Int?, val image: String?, val owned: Boolean, val active: Boolean, val quantity: Int? = null,
+    val subscriptionPrice: Int? = null, val rating: String? = null,
+)
+
+/** Серверные фильтры магазина (аргументы collectibles на сайте). */
+data class ShopServer(
+    val onlyLimited: Boolean = false,
+    val onlyWithSubscription: Boolean = false,
+    val excludePurchased: Boolean = false,
+    val ratingInclude: List<String> = emptyList(),
+    val ratingExclude: List<String> = emptyList(),
+)
 
 /** Колоды, паки, кузница, турнир карт, магазин. Входные поля мутаций частично угаданы по соглашениям сайта. */
 class EcosystemRepository(private val api: SenkuroApi) {
@@ -225,21 +236,42 @@ class EcosystemRepository(private val api: SenkuroApi) {
 
     // ---- магазин
 
-    suspend fun shop(type: String, after: String?): Pair<List<ShopItem>, String?> {
-        val vars = buildJsonObject { put("type", type); if (after != null) put("after", after) }
+    /** [server] — фильтры, которые считает сервер; остальные (цена, скидка, «куплено») применяет ShopFilters на устройстве. */
+    suspend fun shop(type: String, after: String?, server: ShopServer = ShopServer()): Pair<List<ShopItem>, String?> {
+        val vars = buildJsonObject {
+            put("type", type); if (after != null) put("after", after)
+            if (server.onlyLimited) put("onlyLimited", true)
+            if (server.onlyWithSubscription) put("onlyWithSubscription", true)
+            if (server.excludePurchased) put("excludePurchased", true)
+            if (server.ratingInclude.isNotEmpty() || server.ratingExclude.isNotEmpty()) {
+                put("rating", buildJsonObject {
+                    put("include", kotlinx.serialization.json.buildJsonArray { server.ratingInclude.forEach { add(JsonPrimitive(it)) } })
+                    put("exclude", kotlinx.serialization.json.buildJsonArray { server.ratingExclude.forEach { add(JsonPrimitive(it)) } })
+                })
+            }
+        }
         val c = api.execute("fetchCollectibles", "fetchCollectibles", vars, ECollectiblesResponse.serializer()).collectibles
         return c.edges.map { e ->
             val n = e.node
-            ShopItem(n.id, n.titles.pick() ?: "Товар", type, n.price, n.basePrice, n.image?.original?.url, n.viewerCollectible != null, n.viewerCollectible?.active == true)
+            ShopItem(n.id, n.titles.pick() ?: "Товар", type, n.price, n.basePrice, n.image?.original?.url, n.viewerCollectible != null, n.viewerCollectible?.active == true, n.quantity,
+                n.subscriptionPrice, (n.rating as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content)
         } to c.pageInfo.endCursor.takeIf { c.pageInfo.hasNextPage }
     }
 
     suspend fun equip(collectibleId: String, type: String, userId: String) =
         mutate("equipUserCollectible", buildJsonObject { put("collectibleId", collectibleId); put("collectibleType", type); put("userId", userId) })
 
-    /** Покупка: поля ввода не подтверждены (на сайте мутация вызывается из чанка, которого нет в архиве). */
+    /**
+     * Покупка, как на сайте (CollectibleCommonPreviewModal): input.positions = [{entityId, recipientUserId?}].
+     * recipientUserId задаётся только при покупке в подарок; для себя поле не передаётся.
+     */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun buy(collectibleId: String, userId: String) =
-        mutate("createCollectibleOrder", buildJsonObject { put("collectibleId", collectibleId); put("userId", userId) })
+        mutate("createCollectibleOrder", buildJsonObject {
+            put("positions", kotlinx.serialization.json.buildJsonArray {
+                add(buildJsonObject { put("entityId", collectibleId) })
+            })
+        })
 }
 
 @Serializable class EOwnedNode(val quantity: Int? = null, val modifier: JsonElement? = null, val locked: Boolean = false, val card: ECard? = null)

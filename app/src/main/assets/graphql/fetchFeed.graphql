@@ -3,7 +3,7 @@ query fetchFeed($after: String) {
     edges {
       node {
         id slug number volume name createdAt
-        manga { id slug originalName { lang content } titles { lang content } status rating cover { original { url } } }
+        manga { id slug originalName { lang content } titles { lang content } status rating score cover { original { url } } }
       }
     }
     pageInfo { hasNextPage endCursor }

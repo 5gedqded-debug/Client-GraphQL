@@ -17,8 +17,8 @@ android {
         applicationId = "me.senkuro.unofficial"
         minSdk = 24
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.1.5-alpha"
+        versionCode = 10
+        versionName = "0.1.6-alpha"
     }
 
     signingConfigs {

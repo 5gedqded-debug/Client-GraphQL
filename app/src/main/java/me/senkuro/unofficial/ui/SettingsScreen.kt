@@ -18,6 +18,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -120,6 +123,9 @@ fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onShop:
         if (token != null) {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionLabel("Мой аккаунт")
+            var promo by remember { mutableStateOf(false) }
+            TextButton(onClick = { promo = true }, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Промокод") }
+            if (promo) PromoDialog(onDismiss = { promo = false })
             TextButton(onClick = onCardHub, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Карточки") }
             TextButton(onClick = onShop, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Senkoshop") }
             TextButton(onClick = onShorts, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Shorts") }

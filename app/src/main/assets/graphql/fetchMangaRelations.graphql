@@ -13,6 +13,7 @@ query fetchMangaRelations($mangaId: ID!, $after: String) {
             titles { lang content }
             status
             rating
+            score
             cover { original { url } }
           }
         }

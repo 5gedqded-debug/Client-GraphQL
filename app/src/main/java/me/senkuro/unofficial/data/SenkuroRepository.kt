@@ -46,7 +46,30 @@ class SenkuroRepository(private val api: SenkuroApi) {
         val response = api.execute(
             "searchTachiyomiManga", "searchTachiyomiManga", variables, SearchResponse.serializer(),
         )
-        return response.mangaTachiyomiSearch.mangas.mapNotNull { it.toItem() }
+        return withSiteScores(response.mangaTachiyomiSearch.mangas.mapNotNull { it.toItem() })
+    }
+
+    /**
+     * В поиске Tachiyomi нет поля score (тип MangaTachiyomiSearch его не знает), поэтому оценки для найденных
+     * тайтлов берутся запросом сайта `manga(slug)` — одним запросом с алиасами. Оценки необязательны: при ошибке
+     * список возвращается без них.
+     */
+    private suspend fun withSiteScores(items: List<MangaItem>): List<MangaItem> {
+        if (items.isEmpty()) return items
+        return try {
+            val vars = buildJsonObject { items.forEachIndexed { i, m -> put("s$i", m.slug) } }
+            val decl = items.indices.joinToString(", ") { "\$s$it: String!" }
+            val body = items.indices.joinToString("\n") { "  m$it: manga(slug: \$s$it) { score }" }
+            val root = api.executeText("fetchMangaScores", "query fetchMangaScores($decl) {\n$body\n}", vars, JsonObject.serializer())
+            items.mapIndexed { i, m ->
+                val sc = scoreText((root["m$i"] as? JsonObject)?.get("score"))
+                if (sc != null) m.copy(score = sc) else m
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            items
+        }
     }
 
     /**
@@ -316,6 +339,17 @@ class SenkuroRepository(private val api: SenkuroApi) {
     // ------------------------------------------------------- Аккаунт и закладки сайта
 
     /** null — токен не принят (аноним). */
+    /** Активирует промокод; при ошибке сервера бросает исключение с его сообщением. */
+    suspend fun redeemPromo(code: String): PromoReward {
+        val r = api.execute(
+            "redeemRedemption", "redeemRedemption",
+            buildJsonObject { put("input", buildJsonObject { put("code", code) }) }, RedeemResponse.serializer(),
+        ).redeemRedemption
+        val titles = r?.collectible?.titles.orEmpty()
+        val name = (titles.firstOrNull { it.lang.equals("RU", true) } ?: titles.firstOrNull())?.content
+        return PromoReward(r?.points?.toLong() ?: 0L, r?.experience?.toLong() ?: 0L, name)
+    }
+
     /** Таблица уровней сайта и опыт, набранный сегодня. */
     suspend fun levels(): LevelsInfo {
         val r = api.execute("fetchLevelUsers", "fetchLevelUsers", buildJsonObject {}, LevelUsersResponse.serializer())
@@ -388,12 +422,14 @@ class SenkuroRepository(private val api: SenkuroApi) {
             })
         }
         val r = api.execute("updateUserBookmark", "updateUserBookmark", vars, MutationResponse.serializer())
+        progressCache = null
         if (r.updateUserBookmark?.success != true) throw ApiException("Не удалось сохранить закладку")
     }
 
     suspend fun removeBookmark(mangaId: String) {
         val vars = buildJsonObject { put("input", buildJsonObject { put("subjectId", mangaId) }) }
         val r = api.execute("deleteUserBookmark", "deleteUserBookmark", vars, MutationResponse.serializer())
+        progressCache = null
         if (r.deleteUserBookmark?.success != true) throw ApiException("Не удалось удалить закладку")
     }
 
@@ -758,6 +794,10 @@ class SenkuroRepository(private val api: SenkuroApi) {
             ViewerStateResponse.serializer()).manga?.viewerBookmark?.collectionId?.takeIf { it.isNotBlank() }
 
     private var progressCache: Triple<String, Double?, Int?>? = null
+    private var progressCacheAt = 0L
+
+    /** Сбрасывает кэш закладки (открыт ридер, закладку добавили/изменили/удалили) — берём актуальное с сайта. */
+    fun resetProgress() { progressCache = null }
 
     /**
      * Прогресс чтения как на сайте (reader.js): страница = MangaChapterPage.number, сохраняется в закладку
@@ -765,10 +805,12 @@ class SenkuroRepository(private val api: SenkuroApi) {
      * новая позиция не позади сохранённой; на последней странице последней главы — следующий целый номер и page=null.
      */
     suspend fun saveReadProgress(mangaId: String, slug: String, chapterNumber: String, page: Int, lastOfLast: Boolean) {
+        // «закладки нет» помним недолго: её могли добавить уже во время чтения
+        if (progressCache?.let { it.first == mangaId && it.second == null } == true && System.currentTimeMillis() - progressCacheAt > 10_000) progressCache = null
         val cur = progressCache?.takeIf { it.first == mangaId } ?: run {
             val b = api.execute("fetchMangaViewerState", "fetchMangaViewerState", buildJsonObject { put("slug", slug) },
                 ViewerStateResponse.serializer()).manga?.viewerBookmark
-            Triple(mangaId, b?.number.text()?.toDoubleOrNull(), b?.page).also { progressCache = if (b == null) Triple(mangaId, null, null) else it }
+            Triple(mangaId, b?.number.text()?.toDoubleOrNull(), b?.page).also { progressCache = if (b == null) Triple(mangaId, null, null) else it; progressCacheAt = System.currentTimeMillis() }
         }
         val saved = cur.second ?: return            // закладки нет — сайт тоже ничего не сохраняет
         val num = chapterNumber.toDoubleOrNull() ?: return
@@ -955,9 +997,16 @@ class SenkuroRepository(private val api: SenkuroApi) {
             chapterNode != null -> "Глава " + chapterNode.number.text().orEmpty()
             else -> label + if ((eventCount ?: 0) > 1) " ×$eventCount" else ""
         }
+        val achNode = nodes.firstOrNull { it.typename == "AchievementLevel" }
+        val achievement = if (type == "NEW_ACHIEVEMENT" && achNode != null) NotifAchievement(
+            title = pickTitle(achNode.titles, null, "Достижение"),
+            objective = achNode.objective?.takeIf { it.isNotBlank() },
+            cover = achNode.cover?.original?.url,
+            userSlug = nodes.firstOrNull { it.typename == "User" }?.slug?.takeIf { it.isNotBlank() },
+        ) else null
         return NotificationItem(
             id = id,
-            title = manga?.title ?: post ?: user ?: label.ifBlank { "Уведомление" },
+            title = if (achievement != null) "У тебя новое достижение!" else manga?.title ?: post ?: user ?: label.ifBlank { "Уведомление" },
             subtitle = subtitle,
             date = lastEventAt?.take(10),
             manga = manga,
@@ -978,6 +1027,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
                 chapterNode?.number.text()?.let { append("Глава ").append(it) }
                 pageNode.number.text()?.let { append(" Страница ").append(it) }
             }.trim().ifBlank { null } else null,
+            achievement = achievement,
         )
     }
 
@@ -993,6 +1043,18 @@ class SenkuroRepository(private val api: SenkuroApi) {
     private fun pickTitle(titles: List<Title>?, original: Title?, slug: String): String =
         titles?.localized() ?: original?.content ?: slug
 
+    /**
+     * Оценка как пришла с сервера: «6.5», «7» остаются как есть, длинный хвост (9.103448…) обрезается
+     * до двух знаков, как на странице тайтла («9.10»). Пусто и ноль — оценки нет.
+     */
+    private fun scoreText(e: JsonElement?): String? {
+        val raw = (e as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.trim().orEmpty()
+        val v = raw.toDoubleOrNull() ?: return null
+        if (v == 0.0) return null
+        val decimals = raw.substringAfter('.', "").length
+        return if (decimals > 2 || 'e' in raw.lowercase()) "%.2f".format(java.util.Locale.US, v) else raw
+    }
+
     private fun MangaCardDto.toItem(): MangaItem? {
         val id = id ?: return null
         return MangaItem(
@@ -1002,6 +1064,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
             cover = cover?.original?.url,
             status = statusName(status),
             age = ageName(rating),
+            score = scoreText(score),
         )
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -207,6 +208,7 @@ fun NotificationsScreen(
     onChapter: (MangaItem, String) -> Unit = { m, _ -> onManga(m) },
     onChapterAt: (MangaItem, String, Int) -> Unit = { m, c, _ -> onChapter(m, c) },
     onPost: (String) -> Unit = {},
+    onUser: (String) -> Unit = {},
     onSettings: () -> Unit = {},
     vm: NotificationsViewModel = viewModel(),
 ) {
@@ -308,6 +310,7 @@ fun NotificationsScreen(
                             onChapter = onChapter,
                             onChapterAt = onChapterAt,
                             onPost = onPost,
+                            onUser = onUser,
                             onHide = { vm.act(false, listOf(item)) },
                             onDelete = { vm.act(true, listOf(item)) },
                         )
@@ -371,6 +374,7 @@ private fun NotificationCard(
     onChapter: (MangaItem, String) -> Unit,
     onChapterAt: (MangaItem, String, Int) -> Unit,
     onPost: (String) -> Unit,
+    onUser: (String) -> Unit,
     onHide: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -395,7 +399,12 @@ private fun NotificationCard(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (item.actors.isNotEmpty()) {
+            if (item.achievement != null) {
+                Box(
+                    Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Filled.Star, contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black) }
+            } else if (item.actors.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy((-10).dp)) {
                     item.actors.take(3).forEach { a ->
                         AvatarWithFrame(a.avatar, a.frame, 36.dp)
@@ -428,7 +437,26 @@ private fun NotificationCard(
                 }
             }
         }
-        if (item.headline == null) Text(item.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+        if (item.headline == null && item.achievement == null) Text(item.caption, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+        item.achievement?.let { a ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.background).padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                AsyncImage(
+                    model = a.cover, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
+                )
+                Column(Modifier.weight(1f)) {
+                    Text("«${a.title}»", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    a.objective?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) }
+                }
+            }
+            time?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
+            val slug = a.userSlug ?: AppGraph.account.value?.slug
+            if (slug != null) Button(onClick = { onUser(slug) }, modifier = Modifier.fillMaxWidth()) { Text("Посмотреть") }
+        }
         item.quote?.let { q ->
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.background).padding(10.dp)) {
                 Box(Modifier.size(width = 3.dp, height = 18.dp).background(MaterialTheme.colorScheme.primary))

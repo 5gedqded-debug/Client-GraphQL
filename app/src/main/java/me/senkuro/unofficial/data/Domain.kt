@@ -11,6 +11,8 @@ data class MangaItem(
     /** Статус и возрастное ограничение (русские названия), если пришли в ответе. */
     val status: String? = null,
     val age: String? = null,
+    /** Общая оценка тайтла в том виде, как её отдаёт API (например «6.5», «7», «9.10»); null — оценки нет. */
+    val score: String? = null,
 )
 
 data class MangaDetails(
@@ -134,7 +136,11 @@ data class NotificationItem(
     val targetLabel: String? = null,
     /** Время твоего/ответного комментария и непрочитанность — для точки справа. */
     val unread: Boolean = false,
+    /** Уведомление «У тебя новое достижение!» (NEW_ACHIEVEMENT). */
+    val achievement: NotifAchievement? = null,
 )
+
+data class NotifAchievement(val title: String, val objective: String?, val cover: String?, val userSlug: String?)
 
 data class NotificationsPage(val items: List<NotificationItem>, val next: String?)
 
@@ -221,6 +227,9 @@ data class ShortItem(val id: String, val chapterSlug: String, val manga: MangaIt
 data class UserBalance(val credits: Long, val points: Long, val level: Int?, val experience: Long = 0)
 
 /** Ступень уровня: experience — опыт на этот уровень, totalExperience — суммарный опыт до него. */
+/** Награда за промокод: коины, опыт, название предмета (если выдан). */
+data class PromoReward(val points: Long, val experience: Long, val collectible: String?)
+
 data class LevelRow(val number: Int, val experience: Long, val totalExperience: Long)
 
 data class LevelsInfo(val levels: List<LevelRow>, val todayExperience: Long)

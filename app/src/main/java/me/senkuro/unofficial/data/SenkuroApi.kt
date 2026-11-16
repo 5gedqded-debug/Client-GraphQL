@@ -68,10 +68,18 @@ class SenkuroApi(private val context: Context, private val client: OkHttpClient)
         file: String,
         variables: JsonObject,
         deserializer: DeserializationStrategy<T>,
+    ): T = executeText(operation, query(file), variables, deserializer)
+
+    /** То же, что [execute], но текст запроса передаётся строкой (для запросов, собираемых на лету). */
+    suspend fun <T> executeText(
+        operation: String,
+        queryText: String,
+        variables: JsonObject,
+        deserializer: DeserializationStrategy<T>,
     ): T = withContext(Dispatchers.IO) {
         val payload = buildJsonObject {
             put("operationName", operation)
-            put("query", query(file))
+            put("query", queryText)
             put("variables", variables)
         }.toString()
 
@@ -110,7 +118,7 @@ class SenkuroApi(private val context: Context, private val client: OkHttpClient)
             throw e
         } finally {
             if (sink != null) runCatching {
-                sink(ApiCall(started, operation, query(file), ApiTrace.safeVariables(operation, variables.toString()), code,
+                sink(ApiCall(started, operation, queryText, ApiTrace.safeVariables(operation, variables.toString()), code,
                     System.currentTimeMillis() - started, body.take(30_000), failure))
             }
         }

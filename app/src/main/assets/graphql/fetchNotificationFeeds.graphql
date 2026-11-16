@@ -33,7 +33,8 @@ query fetchNotificationFeeds($first: Int!, $after: String, $isRead: Boolean!, $t
 fragment NotifNode on Node {
   __typename
   id
-  ... on User { name }
+  ... on User { name slug }
+  ... on AchievementLevel { achievementId objective titles { lang content } cover { original { url } } }
   ... on Post { title slug }
   ... on Comment {
     content { __typename ... on TiptapNodeNestedBlock { content { __typename ... on TiptapNodeText { text } } } }

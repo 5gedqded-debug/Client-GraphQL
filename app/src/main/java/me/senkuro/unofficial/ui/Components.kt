@@ -64,6 +64,21 @@ fun MangaCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
+            item.score?.let { sc ->
+                Text(
+                    text = "★ $sc",
+                    color = androidx.compose.ui.graphics.Color.White,
+                    fontSize = if (compact) 8.sp else 10.sp,
+                    lineHeight = if (compact) 10.sp else 12.sp,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(4.dp)
+                        .background(androidx.compose.ui.graphics.Color(0xB3000000), RoundedCornerShape(3.dp))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                )
+            }
             if (label != null) {
                 Text(
                     text = label,

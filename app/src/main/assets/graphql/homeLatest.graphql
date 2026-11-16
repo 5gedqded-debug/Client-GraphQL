@@ -12,6 +12,7 @@ query HomeLatest($after: String) {
         titles { lang content }
         status
         rating
+        score
         cover { original { url } }
       }
     }

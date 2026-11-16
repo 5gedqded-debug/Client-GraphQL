@@ -1,6 +1,6 @@
-query fetchCollectibles($after: String, $type: CollectibleType!) {
-  collectibles(first: 24, after: $after, type: $type, visible: true) {
-    edges { node { id slug type titles { lang content } price basePrice rating image { original { url } } viewerCollectible { id active } } }
+query fetchCollectibles($after: String, $type: CollectibleType!, $onlyLimited: Boolean, $onlyWithSubscription: Boolean, $excludePurchased: Boolean, $rating: CollectibleRatingFilter) {
+  collectibles(first: 24, after: $after, type: $type, visible: true, onlyLimited: $onlyLimited, onlyWithSubscription: $onlyWithSubscription, excludePurchased: $excludePurchased, rating: $rating) {
+    edges { node { id slug type titles { lang content } price basePrice subscriptionPrice quantity rating image { original { url } } viewerCollectible { id active } } }
     pageInfo { hasNextPage endCursor }
   }
 }

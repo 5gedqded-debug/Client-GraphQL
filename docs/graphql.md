@@ -31,6 +31,8 @@
 | `fetchCharacter`, `fetchMangas` | страница персонажа: тайтлы и карточки (нажатие на персонажа в тайтле или карточке) |
 | `fetchUserTasks` | задания (Настройки → Задания) |
 | `fetchLevelUsers` | страница уровней (шапка → «Ур.» своего аккаунта) |
+| `fetchMangaScores` (собирается в коде) | оценки для результатов поиска Tachiyomi (в `MangaTachiyomiSearch` нет поля `score`) |
+| `redeemRedemption` | промокод (Настройки → Мой аккаунт → Промокод) |
 | `fetchCardOffers`, `acceptCardOffer`, `closeCardOffer` | обмены карточек (Настройки → Обмены карточек) |
 | `fetchMainUserTops` | лента топов дня на главной |
 | `fetchMainAd`, `viewAd` | тонкий рекламный баннер на главной под «Популярным за день» |

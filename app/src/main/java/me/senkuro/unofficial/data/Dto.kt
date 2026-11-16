@@ -53,6 +53,7 @@ class MangaCardDto(
     val cover: Cover? = null,
     val status: String? = null,
     val rating: String? = null,
+    val score: kotlinx.serialization.json.JsonElement? = null,
 )
 
 @Serializable
@@ -244,6 +245,8 @@ class NotifNodeDto(
     /** MangaChapterPage → глава; MangaChapter → тайтл (расширенный запрос). */
     val chapter: NotifNodeDto? = null,
     val manga: NotifNodeDto? = null,
+    /** AchievementLevel (уведомление «новое достижение»): описание цели. */
+    val objective: String? = null,
 )
 
 @Serializable
@@ -581,3 +584,16 @@ class LevelUsersResponse(
     val levelUsers: List<LevelDto> = emptyList(),
     val viewerTodayExperience: kotlinx.serialization.json.JsonElement? = null,
 )
+
+@Serializable
+class RedeemCollectibleDto(val titles: List<Title> = emptyList())
+
+@Serializable
+class RedeemDto(
+    val points: Double? = null,
+    val experience: Double? = null,
+    val collectible: RedeemCollectibleDto? = null,
+)
+
+@Serializable
+class RedeemResponse(val redeemRedemption: RedeemDto? = null)
