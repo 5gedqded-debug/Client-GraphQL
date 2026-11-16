@@ -245,8 +245,8 @@ class EcosystemRepository(private val api: SenkuroApi) {
             if (server.excludePurchased) put("excludePurchased", true)
             if (server.ratingInclude.isNotEmpty() || server.ratingExclude.isNotEmpty()) {
                 put("rating", buildJsonObject {
-                    put("include", kotlinx.serialization.json.buildJsonArray { server.ratingInclude.forEach { add(it) } })
-                    put("exclude", kotlinx.serialization.json.buildJsonArray { server.ratingExclude.forEach { add(it) } })
+                    put("include", kotlinx.serialization.json.buildJsonArray { server.ratingInclude.forEach { add(JsonPrimitive(it)) } })
+                    put("exclude", kotlinx.serialization.json.buildJsonArray { server.ratingExclude.forEach { add(JsonPrimitive(it)) } })
                 })
             }
         }
