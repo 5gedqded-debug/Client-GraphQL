@@ -33,7 +33,7 @@ query fetchMangas(
     bookmarkCollections: $bookmarkCollections,
     translitionStatus: $translitionStatus
   ) {
-    edges { node { id slug originalName { lang content } titles { lang content } status rating cover { original { url } } } }
+    edges { node { id slug originalName { lang content } titles { lang content } status rating score cover { original { url } } } }
     pageInfo { hasNextPage endCursor }
   }
 }

@@ -21,6 +21,7 @@ query fetchUserBookmarks($after: String, $userId: ID!, $collectionId: ID, $subje
             titles { lang content }
             status
             rating
+            score
             cover { original { url } }
           }
         }

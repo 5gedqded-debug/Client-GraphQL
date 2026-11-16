@@ -11,6 +11,8 @@ data class MangaItem(
     /** Статус и возрастное ограничение (русские названия), если пришли в ответе. */
     val status: String? = null,
     val age: String? = null,
+    /** Общая оценка тайтла в том виде, как её отдаёт API (например «6.5», «7», «9.10»); null — оценки нет. */
+    val score: String? = null,
 )
 
 data class MangaDetails(

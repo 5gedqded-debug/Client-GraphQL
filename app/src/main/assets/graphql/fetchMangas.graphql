@@ -1,6 +1,6 @@
 query fetchMangas($first: Int = 20, $after: String, $character: MangaCharacterFilter, $staff: MangaStaffFilter) {
   mangas(first: $first, after: $after, character: $character, staff: $staff, orderBy: {field: CREATED_AT, direction: DESC}) {
-    edges { node { id slug originalName { lang content } titles { lang content } status rating cover { original { url } } } }
+    edges { node { id slug originalName { lang content } titles { lang content } status rating score cover { original { url } } } }
     pageInfo { hasNextPage endCursor }
   }
 }

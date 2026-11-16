@@ -53,6 +53,7 @@ class MangaCardDto(
     val cover: Cover? = null,
     val status: String? = null,
     val rating: String? = null,
+    val score: kotlinx.serialization.json.JsonElement? = null,
 )
 
 @Serializable

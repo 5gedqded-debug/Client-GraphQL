@@ -12,6 +12,7 @@ query fetchMangaBookmarkNextChapters {
       titles { lang content }
       status
       rating
+      score
       cover { original { url } }
     }
   }

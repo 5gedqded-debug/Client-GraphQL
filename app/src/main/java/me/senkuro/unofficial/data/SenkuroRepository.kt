@@ -1012,6 +1012,11 @@ class SenkuroRepository(private val api: SenkuroApi) {
     private fun pickTitle(titles: List<Title>?, original: Title?, slug: String): String =
         titles?.localized() ?: original?.content ?: slug
 
+    /** Оценка как пришла с сервера (без округления); пусто и ноль — оценки нет. */
+    private fun scoreText(e: JsonElement?): String? =
+        (e as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content
+            ?.takeIf { it.isNotBlank() && (it.toDoubleOrNull() ?: 1.0) != 0.0 }
+
     private fun MangaCardDto.toItem(): MangaItem? {
         val id = id ?: return null
         return MangaItem(
@@ -1021,6 +1026,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
             cover = cover?.original?.url,
             status = statusName(status),
             age = ageName(rating),
+            score = scoreText(score),
         )
     }
 
