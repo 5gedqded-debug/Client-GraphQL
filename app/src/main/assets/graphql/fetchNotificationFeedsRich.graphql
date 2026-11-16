@@ -34,7 +34,8 @@ fragment NotifNode on Node {
   __typename
   id
   ... on MangaChapterPage { number chapter { id number volume manga { id slug originalName { lang content } titles { lang content } cover { original { url } } } } }
-  ... on User { name }
+  ... on User { name slug }
+  ... on AchievementLevel { achievementId objective titles { lang content } cover { original { url } } }
   ... on Post { title slug }
   ... on Comment {
     content { __typename ... on TiptapNodeNestedBlock { content { __typename ... on TiptapNodeText { text } } } }

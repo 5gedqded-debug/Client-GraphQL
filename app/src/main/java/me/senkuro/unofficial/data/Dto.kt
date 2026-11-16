@@ -245,6 +245,8 @@ class NotifNodeDto(
     /** MangaChapterPage → глава; MangaChapter → тайтл (расширенный запрос). */
     val chapter: NotifNodeDto? = null,
     val manga: NotifNodeDto? = null,
+    /** AchievementLevel (уведомление «новое достижение»): описание цели. */
+    val objective: String? = null,
 )
 
 @Serializable

@@ -997,9 +997,16 @@ class SenkuroRepository(private val api: SenkuroApi) {
             chapterNode != null -> "Глава " + chapterNode.number.text().orEmpty()
             else -> label + if ((eventCount ?: 0) > 1) " ×$eventCount" else ""
         }
+        val achNode = nodes.firstOrNull { it.typename == "AchievementLevel" }
+        val achievement = if (type == "NEW_ACHIEVEMENT" && achNode != null) NotifAchievement(
+            title = pickTitle(achNode.titles, null, "Достижение"),
+            objective = achNode.objective?.takeIf { it.isNotBlank() },
+            cover = achNode.cover?.original?.url,
+            userSlug = nodes.firstOrNull { it.typename == "User" }?.slug?.takeIf { it.isNotBlank() },
+        ) else null
         return NotificationItem(
             id = id,
-            title = manga?.title ?: post ?: user ?: label.ifBlank { "Уведомление" },
+            title = if (achievement != null) "У тебя новое достижение!" else manga?.title ?: post ?: user ?: label.ifBlank { "Уведомление" },
             subtitle = subtitle,
             date = lastEventAt?.take(10),
             manga = manga,
@@ -1020,6 +1027,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
                 chapterNode?.number.text()?.let { append("Глава ").append(it) }
                 pageNode.number.text()?.let { append(" Страница ").append(it) }
             }.trim().ifBlank { null } else null,
+            achievement = achievement,
         )
     }
 

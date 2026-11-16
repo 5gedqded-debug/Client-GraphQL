@@ -136,7 +136,11 @@ data class NotificationItem(
     val targetLabel: String? = null,
     /** Время твоего/ответного комментария и непрочитанность — для точки справа. */
     val unread: Boolean = false,
+    /** Уведомление «У тебя новое достижение!» (NEW_ACHIEVEMENT). */
+    val achievement: NotifAchievement? = null,
 )
+
+data class NotifAchievement(val title: String, val objective: String?, val cover: String?, val userSlug: String?)
 
 data class NotificationsPage(val items: List<NotificationItem>, val next: String?)
 
