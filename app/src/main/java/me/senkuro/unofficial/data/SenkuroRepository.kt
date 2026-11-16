@@ -399,12 +399,14 @@ class SenkuroRepository(private val api: SenkuroApi) {
             })
         }
         val r = api.execute("updateUserBookmark", "updateUserBookmark", vars, MutationResponse.serializer())
+        progressCache = null
         if (r.updateUserBookmark?.success != true) throw ApiException("Не удалось сохранить закладку")
     }
 
     suspend fun removeBookmark(mangaId: String) {
         val vars = buildJsonObject { put("input", buildJsonObject { put("subjectId", mangaId) }) }
         val r = api.execute("deleteUserBookmark", "deleteUserBookmark", vars, MutationResponse.serializer())
+        progressCache = null
         if (r.deleteUserBookmark?.success != true) throw ApiException("Не удалось удалить закладку")
     }
 
@@ -769,6 +771,10 @@ class SenkuroRepository(private val api: SenkuroApi) {
             ViewerStateResponse.serializer()).manga?.viewerBookmark?.collectionId?.takeIf { it.isNotBlank() }
 
     private var progressCache: Triple<String, Double?, Int?>? = null
+    private var progressCacheAt = 0L
+
+    /** Сбрасывает кэш закладки (открыт ридер, закладку добавили/изменили/удалили) — берём актуальное с сайта. */
+    fun resetProgress() { progressCache = null }
 
     /**
      * Прогресс чтения как на сайте (reader.js): страница = MangaChapterPage.number, сохраняется в закладку
@@ -776,10 +782,12 @@ class SenkuroRepository(private val api: SenkuroApi) {
      * новая позиция не позади сохранённой; на последней странице последней главы — следующий целый номер и page=null.
      */
     suspend fun saveReadProgress(mangaId: String, slug: String, chapterNumber: String, page: Int, lastOfLast: Boolean) {
+        // «закладки нет» помним недолго: её могли добавить уже во время чтения
+        if (progressCache?.let { it.first == mangaId && it.second == null } == true && System.currentTimeMillis() - progressCacheAt > 10_000) progressCache = null
         val cur = progressCache?.takeIf { it.first == mangaId } ?: run {
             val b = api.execute("fetchMangaViewerState", "fetchMangaViewerState", buildJsonObject { put("slug", slug) },
                 ViewerStateResponse.serializer()).manga?.viewerBookmark
-            Triple(mangaId, b?.number.text()?.toDoubleOrNull(), b?.page).also { progressCache = if (b == null) Triple(mangaId, null, null) else it }
+            Triple(mangaId, b?.number.text()?.toDoubleOrNull(), b?.page).also { progressCache = if (b == null) Triple(mangaId, null, null) else it; progressCacheAt = System.currentTimeMillis() }
         }
         val saved = cur.second ?: return            // закладки нет — сайт тоже ничего не сохраняет
         val num = chapterNumber.toDoubleOrNull() ?: return

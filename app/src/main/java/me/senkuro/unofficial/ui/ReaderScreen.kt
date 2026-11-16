@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onEach
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,6 +64,7 @@ fun ReaderScreen(
     vm: ReaderViewModel = viewModel(key = "reader-$mangaId-$chapterId"),
 ) {
     LaunchedEffect(mangaId, chapterId) { vm.load(mangaId, chapterId) }
+    LaunchedEffect(mangaId) { AppGraph.repository.resetProgress() }
     var controls by remember { mutableStateOf(true) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var showComments by remember { mutableStateOf(false) }
@@ -129,19 +131,42 @@ fun ReaderScreen(
                             }
                         }
                 }
-                // прогресс чтения — в закладку сайта, как это делает сайт (с задержкой 1,5 с)
+                // прогресс чтения — в закладку сайта, как это делает сайт: с задержкой 1,5 с и сразу при выходе из ридера
+                val latestPage = remember(data.chapter.id) { androidx.compose.runtime.mutableIntStateOf(0) }
+                fun currentPage(): Int {
+                    val total = urls.size
+                    if (total == 0) return 0
+                    val atEnd = !listState.canScrollForward && listState.layoutInfo.totalItemsCount > 1
+                    return if (atEnd) total else listState.firstVisibleItemIndex.coerceIn(0, total - 1) + 1
+                }
                 @OptIn(kotlinx.coroutines.FlowPreview::class)
                 LaunchedEffect(data.chapter.id, hasToken, urls.size) {
                     val slug = data.manga?.slug
                     if (hasToken == null || slug == null || urls.isEmpty()) return@LaunchedEffect
-                    androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex }
+                    androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.canScrollForward }
+                        .onEach { latestPage.intValue = currentPage() }
                         .debounce(1500)
-                        .collect { idx ->
-                            val page = idx.coerceIn(0, urls.size - 1) + 1
+                        .collect {
+                            val page = currentPage()
                             val last = data.next == null && page == urls.size
                             try { AppGraph.repository.saveReadProgress(mangaId, slug, data.chapter.number, page, last) }
                             catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { }
                         }
+                }
+                // выход из ридера (назад, смена главы): досылаем последнюю позицию, не дожидаясь задержки
+                androidx.compose.runtime.DisposableEffect(data.chapter.id, hasToken, urls.size) {
+                    onDispose {
+                        val slug = data.manga?.slug
+                        val page = latestPage.intValue
+                        if (hasToken != null && slug != null && page > 0) {
+                            val last = data.next == null && page == urls.size
+                            @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+                            kotlinx.coroutines.GlobalScope.launch {
+                                try { AppGraph.repository.saveReadProgress(mangaId, slug, data.chapter.number, page, last) }
+                                catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { }
+                            }
+                        }
+                    }
                 }
                 // закладка с сайта: открываем главу сразу на сохранённой странице (нумерация с 1)
                 // пока позиция не выставлена, картинки не грузим: страницы до нужной пропускаются
