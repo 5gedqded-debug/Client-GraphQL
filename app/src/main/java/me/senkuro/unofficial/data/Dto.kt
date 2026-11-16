@@ -581,3 +581,16 @@ class LevelUsersResponse(
     val levelUsers: List<LevelDto> = emptyList(),
     val viewerTodayExperience: kotlinx.serialization.json.JsonElement? = null,
 )
+
+@Serializable
+class RedeemCollectibleDto(val titles: List<Title> = emptyList())
+
+@Serializable
+class RedeemDto(
+    val points: Double? = null,
+    val experience: Double? = null,
+    val collectible: RedeemCollectibleDto? = null,
+)
+
+@Serializable
+class RedeemResponse(val redeemRedemption: RedeemDto? = null)

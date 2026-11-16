@@ -1,0 +1,11 @@
+mutation redeemRedemption($input: RedeemRedemptionInput!) {
+  redeemRedemption(input: $input) {
+    points
+    experience
+    collectible {
+      id
+      slug
+      titles { lang content }
+    }
+  }
+}

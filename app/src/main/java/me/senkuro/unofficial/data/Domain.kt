@@ -221,6 +221,9 @@ data class ShortItem(val id: String, val chapterSlug: String, val manga: MangaIt
 data class UserBalance(val credits: Long, val points: Long, val level: Int?, val experience: Long = 0)
 
 /** Ступень уровня: experience — опыт на этот уровень, totalExperience — суммарный опыт до него. */
+/** Награда за промокод: коины, опыт, название предмета (если выдан). */
+data class PromoReward(val points: Long, val experience: Long, val collectible: String?)
+
 data class LevelRow(val number: Int, val experience: Long, val totalExperience: Long)
 
 data class LevelsInfo(val levels: List<LevelRow>, val todayExperience: Long)

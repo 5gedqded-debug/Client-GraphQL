@@ -316,6 +316,17 @@ class SenkuroRepository(private val api: SenkuroApi) {
     // ------------------------------------------------------- Аккаунт и закладки сайта
 
     /** null — токен не принят (аноним). */
+    /** Активирует промокод; при ошибке сервера бросает исключение с его сообщением. */
+    suspend fun redeemPromo(code: String): PromoReward {
+        val r = api.execute(
+            "redeemRedemption", "redeemRedemption",
+            buildJsonObject { put("input", buildJsonObject { put("code", code) }) }, RedeemResponse.serializer(),
+        ).redeemRedemption
+        val titles = r?.collectible?.titles.orEmpty()
+        val name = (titles.firstOrNull { it.lang.equals("RU", true) } ?: titles.firstOrNull())?.content
+        return PromoReward(r?.points?.toLong() ?: 0L, r?.experience?.toLong() ?: 0L, name)
+    }
+
     /** Таблица уровней сайта и опыт, набранный сегодня. */
     suspend fun levels(): LevelsInfo {
         val r = api.execute("fetchLevelUsers", "fetchLevelUsers", buildJsonObject {}, LevelUsersResponse.serializer())
