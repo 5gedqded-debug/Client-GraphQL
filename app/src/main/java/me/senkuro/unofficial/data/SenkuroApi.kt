@@ -118,7 +118,7 @@ class SenkuroApi(private val context: Context, private val client: OkHttpClient)
             throw e
         } finally {
             if (sink != null) runCatching {
-                sink(ApiCall(started, operation, query(file), ApiTrace.safeVariables(operation, variables.toString()), code,
+                sink(ApiCall(started, operation, queryText, ApiTrace.safeVariables(operation, variables.toString()), code,
                     System.currentTimeMillis() - started, body.take(30_000), failure))
             }
         }
