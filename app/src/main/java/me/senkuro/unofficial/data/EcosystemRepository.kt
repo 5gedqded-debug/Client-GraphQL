@@ -237,9 +237,17 @@ class EcosystemRepository(private val api: SenkuroApi) {
     suspend fun equip(collectibleId: String, type: String, userId: String) =
         mutate("equipUserCollectible", buildJsonObject { put("collectibleId", collectibleId); put("collectibleType", type); put("userId", userId) })
 
-    /** Покупка: поля ввода не подтверждены (на сайте мутация вызывается из чанка, которого нет в архиве). */
+    /**
+     * Покупка, как на сайте (CollectibleCommonPreviewModal): input.positions = [{entityId, recipientUserId?}].
+     * recipientUserId задаётся только при покупке в подарок; для себя поле не передаётся.
+     */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun buy(collectibleId: String, userId: String) =
-        mutate("createCollectibleOrder", buildJsonObject { put("collectibleId", collectibleId); put("userId", userId) })
+        mutate("createCollectibleOrder", buildJsonObject {
+            put("positions", kotlinx.serialization.json.buildJsonArray {
+                add(buildJsonObject { put("entityId", collectibleId) })
+            })
+        })
 }
 
 @Serializable class EOwnedNode(val quantity: Int? = null, val modifier: JsonElement? = null, val locked: Boolean = false, val card: ECard? = null)
