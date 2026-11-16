@@ -23,7 +23,6 @@ query searchTachiyomiManga(
     mangas {
       id
       slug
-      score
       originalName {
         lang
         content

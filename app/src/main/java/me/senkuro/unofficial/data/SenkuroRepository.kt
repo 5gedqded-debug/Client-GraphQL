@@ -46,7 +46,30 @@ class SenkuroRepository(private val api: SenkuroApi) {
         val response = api.execute(
             "searchTachiyomiManga", "searchTachiyomiManga", variables, SearchResponse.serializer(),
         )
-        return response.mangaTachiyomiSearch.mangas.mapNotNull { it.toItem() }
+        return withSiteScores(response.mangaTachiyomiSearch.mangas.mapNotNull { it.toItem() })
+    }
+
+    /**
+     * В поиске Tachiyomi нет поля score (тип MangaTachiyomiSearch его не знает), поэтому оценки для найденных
+     * тайтлов берутся запросом сайта `manga(slug)` — одним запросом с алиасами. Оценки необязательны: при ошибке
+     * список возвращается без них.
+     */
+    private suspend fun withSiteScores(items: List<MangaItem>): List<MangaItem> {
+        if (items.isEmpty()) return items
+        return try {
+            val vars = buildJsonObject { items.forEachIndexed { i, m -> put("s$i", m.slug) } }
+            val decl = items.indices.joinToString(", ") { "\$s$it: String!" }
+            val body = items.indices.joinToString("\n") { "  m$it: manga(slug: \$s$it) { score }" }
+            val root = api.executeText("fetchMangaScores", "query fetchMangaScores($decl) {\n$body\n}", vars, JsonObject.serializer())
+            items.mapIndexed { i, m ->
+                val sc = scoreText((root["m$i"] as? JsonObject)?.get("score"))
+                if (sc != null) m.copy(score = sc) else m
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            items
+        }
     }
 
     /**
