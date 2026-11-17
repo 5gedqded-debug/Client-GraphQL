@@ -73,6 +73,7 @@ fun ReaderScreen(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var showComments by remember { mutableStateOf(false) }
     var showErrors by remember { mutableStateOf(false) }
+    var pageComments by remember { mutableStateOf<Int?>(null) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val widthPx = ctx.resources.displayMetrics.widthPixels
     val errorCount = me.senkuro.unofficial.data.ReaderErrorLog.entries.size
@@ -105,6 +106,19 @@ fun ReaderScreen(
 
             is UiState.Ready -> {
                 val data = state.data
+                // счётчик комментариев текущей страницы (первая выдача комментариев, до 99+)
+                val curPage = listState.firstVisibleItemIndex
+                LaunchedEffect(data.chapter.slug, curPage) {
+                    pageComments = null
+                    kotlinx.coroutines.delay(600)
+                    try {
+                        val ids = AppGraph.repository.pageIds(data.chapter.slug)
+                        val id = ids.getOrNull(curPage) ?: return@LaunchedEffect
+                        pageComments = AppGraph.repository.comments(id, null).items.size
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (_: Exception) { }
+                }
                 var urls by remember(data.chapter.id) { mutableStateOf(data.pages) }
                 val screenWidthPx = with(androidx.compose.ui.platform.LocalDensity.current) {
                     androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.roundToPx()
@@ -300,11 +314,13 @@ fun ReaderScreen(
                         if (errorCount > 0) androidx.compose.material3.TextButton(onClick = { showErrors = true }) {
                             Text("Ошибки ($errorCount)", color = Color(0xFFFF8A80))
                         }
+                        ReaderBookmarkButton(data.manga)
                         androidx.compose.material3.TextButton(onClick = {
                             showComments = true
                             report { AppGraph.repository.readerEvent(mangaId, data.chapter, "OPEN_COMMENTS") }
                         }) {
-                            Text("Комментарии", color = Color.White)
+                            Text("Комменты", color = Color.White)
+                            CommentCountChip(pageComments)
                         }
                     }
                 }
