@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +62,7 @@ fun ReaderBookmarkButton(manga: MangaItem?, onLogin: () -> Unit = {}) {
     IconButton(onClick = { dialog = true }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                if (added) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                if (added) bookmarkIcon(true) else bookmarkIcon(false),
                 contentDescription = if (added) "В закладках" else "Добавить в закладки",
                 tint = Color.White,
             )
@@ -73,3 +71,36 @@ fun ReaderBookmarkButton(manga: MangaItem?, onLogin: () -> Unit = {}) {
     }
     if (dialog) BookmarkDialog(mangaId = manga.id, onLogin = onLogin, onDismiss = { dialog = false })
 }
+
+private val bookmarkFilled: androidx.compose.ui.graphics.vector.ImageVector by lazy {
+    androidx.compose.ui.graphics.vector.ImageVector.Builder("BookmarkFilled", 24.dp, 24.dp, 24f, 24f).apply {
+        addPath(
+            androidx.compose.ui.graphics.vector.PathData {
+                moveTo(17f, 3f); horizontalLineTo(7f)
+                curveTo(5.9f, 3f, 5f, 3.9f, 5f, 5f)
+                verticalLineTo(21f); lineTo(12f, 18f); lineTo(19f, 21f)
+                verticalLineTo(5f)
+                curveTo(19f, 3.9f, 18.1f, 3f, 17f, 3f); close()
+            },
+            fill = androidx.compose.ui.graphics.SolidColor(Color.Black),
+        )
+    }.build()
+}
+
+private val bookmarkOutline: androidx.compose.ui.graphics.vector.ImageVector by lazy {
+    androidx.compose.ui.graphics.vector.ImageVector.Builder("BookmarkOutline", 24.dp, 24.dp, 24f, 24f).apply {
+        addPath(
+            androidx.compose.ui.graphics.vector.PathData {
+                moveTo(17f, 3f); horizontalLineTo(7f)
+                curveTo(5.9f, 3f, 5f, 3.9f, 5f, 5f)
+                verticalLineTo(21f); lineTo(12f, 18f); lineTo(19f, 21f)
+                verticalLineTo(5f)
+                curveTo(19f, 3.9f, 18.1f, 3f, 17f, 3f); close()
+            },
+            stroke = androidx.compose.ui.graphics.SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+        )
+    }.build()
+}
+
+private fun bookmarkIcon(filled: Boolean) = if (filled) bookmarkFilled else bookmarkOutline
