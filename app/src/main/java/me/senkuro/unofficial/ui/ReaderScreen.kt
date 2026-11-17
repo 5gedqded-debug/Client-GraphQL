@@ -271,6 +271,7 @@ fun ReaderScreen(
                 }
 
                 var showChapters by remember { mutableStateOf(false) }
+                ReaderBookmarkPrompt(data.manga, data.chapter.numberValue)
                 if (showChapters) ReaderChapterSheet(
                     mangaId = mangaId, current = data.chapter,
                     onOpen = { showChapters = false; if (it.id != data.chapter.id) onOpenChapter(it) },

@@ -159,6 +159,16 @@ object AppGraph {
         refreshAccount()
     }
 
+    /** Тайтлы, для которых пользователь отказался от подсказки «добавить в закладки» в читалке. */
+    fun bookmarkPromptDeclined(mangaId: String): Boolean =
+        settings.getStringSet("bookmark_prompt_declined", emptySet())?.contains(mangaId) == true
+
+    fun declineBookmarkPrompt(mangaId: String) {
+        val set = (settings.getStringSet("bookmark_prompt_declined", emptySet()) ?: emptySet()).toMutableSet()
+        set.add(mangaId)
+        settings.edit().putStringSet("bookmark_prompt_declined", set).apply()
+    }
+
     /** Показано ли стартовое предупреждение о неофициальности приложения. */
     fun disclaimerSeen(): Boolean = settings.getBoolean("disclaimer_seen", false)
 
