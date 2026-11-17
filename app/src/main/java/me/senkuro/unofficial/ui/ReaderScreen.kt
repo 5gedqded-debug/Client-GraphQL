@@ -270,6 +270,12 @@ fun ReaderScreen(
                     }
                 }
 
+                var showChapters by remember { mutableStateOf(false) }
+                if (showChapters) ReaderChapterSheet(
+                    mangaId = mangaId, current = data.chapter,
+                    onOpen = { showChapters = false; if (it.id != data.chapter.id) onOpenChapter(it) },
+                    onDismiss = { showChapters = false },
+                )
                 if (controls) {
                     Row(
                         modifier = Modifier
@@ -283,7 +289,8 @@ fun ReaderScreen(
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад", tint = Color.White)
                         }
-                        Column(Modifier.weight(1f)) {
+                        // Тап по названию тайтла/главы — список глав для быстрого переключения, как на сайте.
+                        Column(Modifier.weight(1f).clickable { showChapters = true }) {
                             data.manga?.let {
                                 Text(it.title, color = Color.White, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
