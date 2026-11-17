@@ -59,6 +59,8 @@ fun ReaderBookmarkPrompt(manga: MangaItem?, chapterNumber: Float) {
     fun decline() { AppGraph.declineBookmarkPrompt(manga.id); show = false }
     AlertDialog(
         onDismissRequest = { decline() },
+        // закрывается и кнопкой «Не сейчас», и тапом в любое место вне окна, и системной «Назад»
+        properties = androidx.compose.ui.window.DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true),
         text = {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 AsyncImage(
