@@ -7,6 +7,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -313,13 +317,41 @@ fun ReaderScreen(
                                 onClick = { data.previous?.let(onOpenChapter) },
                                 enabled = data.previous != null,
                             ) { Text("‹ Глава", color = if (data.previous != null) Color.White else Color(0xFF777777)) }
-                            Text(
-                                "${(dragging?.toInt() ?: current) + 1} / $total",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.weight(1f),
-                            )
+                            // Тап по счётчику страниц — список страниц с поиском по номеру, как на сайте.
+                            var pagesMenu by remember { mutableStateOf(false) }
+                            var pageQuery by remember { mutableStateOf("") }
+                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                Text(
+                                    "${(dragging?.toInt() ?: current) + 1} / $total",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                        .clickable { pageQuery = ""; pagesMenu = true }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = pagesMenu,
+                                    onDismissRequest = { pagesMenu = false },
+                                    modifier = Modifier.background(Color(0xFF16171D)).heightIn(max = 360.dp),
+                                ) {
+                                    androidx.compose.material3.OutlinedTextField(
+                                        value = pageQuery,
+                                        onValueChange = { pageQuery = it.filter(Char::isDigit).take(4) },
+                                        singleLine = true,
+                                        placeholder = { Text("№ стр.") },
+                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).width(170.dp),
+                                    )
+                                    (1..total).filter { pageQuery.isEmpty() || it.toString().contains(pageQuery) }.forEach { n ->
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = { Text("$n страница", color = Color.White, fontWeight = if (n == current + 1) FontWeight.Bold else FontWeight.Normal) },
+                                            onClick = { pagesMenu = false; scope.launch { listState.scrollToItem(n - 1) } },
+                                        )
+                                    }
+                                }
+                            }
                             androidx.compose.material3.TextButton(
                                 onClick = { data.next?.let(onOpenChapter) ?: onToTitle() },
                             ) { Text(if (data.next != null) "Глава ›" else "К тайтлу", color = Color.White) }
