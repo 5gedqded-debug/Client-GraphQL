@@ -148,7 +148,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
             throw e
         } catch (_: Exception) {
             emptyList()
-        }.ifEmpty { legacyLabelGroups() }
+        }.ifEmpty { legacyLabelGroups() }.let { RestrictedLabels.filterGroups(it) }
         labelGroupsCache = groups
         return groups
     }

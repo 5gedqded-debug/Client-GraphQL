@@ -26,13 +26,13 @@ object SavedFiltersCodec {
             }
         }
         fun int(key: String): Int? = if (o.has(key) && !o.isNull(key)) o.optInt(key) else null
-        return CatalogFilters(
+        return RestrictedLabels.clean(CatalogFilters(
             orderField = o.optString("orderField", "POPULARITY_SCORE").ifBlank { "POPULARITY_SCORE" },
             ascending = o.optBoolean("ascending", false),
             states = st,
             chaptersMin = int("chaptersMin"), chaptersMax = int("chaptersMax"),
             yearMin = int("yearMin"), yearMax = int("yearMax"),
-        )
+        ))
     }
 
     fun encode(list: List<SavedFilter>): String = JSONObject().apply {
