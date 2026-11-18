@@ -79,6 +79,7 @@ fun CatalogScreen(onManga: (MangaItem) -> Unit, vm: CatalogViewModel = viewModel
     }
     var text by rememberSaveable { mutableStateOf(vm.query) }
     var showFilters by remember { mutableStateOf(false) }
+    var showSaved by remember { mutableStateOf(false) }
     val focus: FocusManager = LocalFocusManager.current
     val gridState = rememberLazyGridState()
 
@@ -143,6 +144,12 @@ fun CatalogScreen(onManga: (MangaItem) -> Unit, vm: CatalogViewModel = viewModel
                 }
             }
 
+            SavedFiltersRow(
+                current = vm.filters,
+                onApply = { vm.applyFilters(it) },
+                onManage = { showSaved = true },
+            )
+
             Box(Modifier.weight(1f)) {
                 LazyVerticalGrid(
                     state = gridState,
@@ -188,6 +195,9 @@ fun CatalogScreen(onManga: (MangaItem) -> Unit, vm: CatalogViewModel = viewModel
         }
     }
 
+    if (showSaved) {
+        SavedFiltersDialog(current = vm.filters, onApply = { vm.applyFilters(it) }, onDismiss = { showSaved = false })
+    }
     if (showFilters) {
         FiltersSheet(
             initial = vm.filters,
@@ -334,6 +344,11 @@ private fun FiltersSheet(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(onClick = { filters = filters.cleared() }) { Text("Сбросить") }
+            if (filters.activeCount > 0) {
+                var saveDialog by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = { saveDialog = true }) { Text("Сохранить") }
+                if (saveDialog) SaveFilterNameDialog(filters) { saveDialog = false }
+            }
             Button(onClick = { onApply(filters) }, modifier = Modifier.weight(1f)) { Text("Применить") }
         }
     }

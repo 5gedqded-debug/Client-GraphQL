@@ -77,6 +77,16 @@ object AppGraph {
     /** id тайтла -> название коллекции закладок (для подписей на постерах). */
     val marks: StateFlow<Map<String, String>> = _marks.asStateFlow()
 
+    private val _savedFilters = MutableStateFlow<List<SavedFilter>>(emptyList())
+
+    /** Сохранённые наборы фильтров каталога (локально). */
+    val savedFilters: StateFlow<List<SavedFilter>> = _savedFilters.asStateFlow()
+
+    fun setSavedFilters(list: List<SavedFilter>) {
+        _savedFilters.value = list
+        settings.edit().putString("saved_catalog_filters", SavedFiltersCodec.encode(list)).apply()
+    }
+
     private var marksJob: Job? = null
 
     /** Загружает все закладки аккаунта, чтобы подписывать постеры («Брошено», «Прочитано»…). */
@@ -127,6 +137,7 @@ object AppGraph {
         settings = app.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
         SenkuroConfig.current = SenkuroConfig.byId(settings.getString(KEY_DOMAIN, null))
         _domain.value = SenkuroConfig.current
+        settings.getString("saved_catalog_filters", null)?.let { SavedFiltersCodec.decode(it) }?.let { _savedFilters.value = it }
 
         _themeDark.value = settings.getBoolean(KEY_DARK, false)
         _streamer.value = settings.getBoolean(KEY_STREAMER, false)
