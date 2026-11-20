@@ -24,6 +24,7 @@ object AppGraph {
     val pendingCatalogLabel = MutableStateFlow<String?>(null)
 
     lateinit var httpClient: OkHttpClient
+    lateinit var rawApi: SenkuroApi
         private set
     lateinit var repository: SenkuroRepository
         private set
@@ -151,6 +152,7 @@ object AppGraph {
             .stateIn(scope, SharingStarted.Eagerly, false)
         httpClient = createHttpClient { auth.current }
         val api = SenkuroApi(app, httpClient)
+        rawApi = api
         repository = SenkuroRepository(api)
         social = SocialRepository(api)
         cards = CardsRepository(api)

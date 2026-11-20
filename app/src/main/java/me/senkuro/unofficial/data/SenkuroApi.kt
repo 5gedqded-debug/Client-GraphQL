@@ -63,6 +63,41 @@ class SenkuroApi(private val context: Context, private val client: OkHttpClient)
         }
     }
 
+    /** Результат сырого запроса для debug-консоли. */
+    class RawResult(val code: Int, val millis: Long, val body: String, val error: String?)
+
+    /** Отправляет произвольный GraphQL-запрос на выбранный API и возвращает ответ как есть (токен подставляется как обычно). */
+    suspend fun raw(apiUrl: String, operation: String?, queryText: String, variablesText: String): RawResult = withContext(Dispatchers.IO) {
+        val vars = try {
+            if (variablesText.isBlank()) JsonObject(emptyMap()) else json.parseToJsonElement(variablesText).jsonObject
+        } catch (e: Exception) {
+            return@withContext RawResult(0, 0, "", "Переменные: некорректный JSON (${e.message?.take(120)})")
+        }
+        val payload = buildJsonObject {
+            if (!operation.isNullOrBlank()) put("operationName", operation)
+            put("query", queryText)
+            put("variables", vars)
+        }.toString()
+        val request = Request.Builder().url(apiUrl).post(payload.toRequestBody("application/json".toMediaType())).build()
+        val started = System.currentTimeMillis()
+        var code = 0
+        var body = ""
+        var failure: String? = null
+        try {
+            client.newCall(request).execute().use { r ->
+                code = r.code
+                body = r.body?.string().orEmpty()
+            }
+        } catch (e: Exception) {
+            failure = e.message ?: e.javaClass.simpleName
+        }
+        val ms = System.currentTimeMillis() - started
+        ApiTrace.sink?.let { sink ->
+            runCatching { sink(ApiCall(started, "Консоль · " + (operation?.takeIf { it.isNotBlank() } ?: "запрос"), queryText, ApiTrace.safeVariables(operation.orEmpty(), vars.toString()), code, ms, body.take(30_000), failure)) }
+        }
+        RawResult(code, ms, body, failure)
+    }
+
     suspend fun <T> execute(
         operation: String,
         file: String,
