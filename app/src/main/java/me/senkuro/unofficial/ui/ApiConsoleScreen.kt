@@ -51,7 +51,7 @@ fun ApiConsoleScreen(onBack: () -> Unit) {
     var query by rememberSaveable { mutableStateOf(SAMPLE_QUERY) }
     var variables by rememberSaveable { mutableStateOf("{\n  \"slug\": \"\"\n}") }
     var operation by rememberSaveable { mutableStateOf("") }
-    var domainId by rememberSaveable { mutableStateOf(SenkuroConfig.current.id) }
+    var url by rememberSaveable { mutableStateOf(SenkuroConfig.current.apiUrl) }
     var sending by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
     var response by remember { mutableStateOf("") }
@@ -78,11 +78,26 @@ fun ApiConsoleScreen(onBack: () -> Unit) {
             Text("API", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SenkuroConfig.DOMAINS.forEach { d ->
-                    FilterChip(selected = domainId == d.id, onClick = { domainId = d.id }, label = { Text(d.apiHost, maxLines = 1) })
+                    FilterChip(selected = url == d.apiUrl, onClick = { url = d.apiUrl }, label = { Text(d.apiHost, maxLines = 1) })
                 }
             }
             OutlinedTextField(
-                value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(),
+                value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                label = { Text("URL API") },
+                textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp),
+            )
+            OutlinedTextField(
+                value = query, modifier = Modifier.fillMaxWidth(),
+                onValueChange = { v ->
+                    // вставили экспорт логгера прямо в поле запроса — разложим по полям
+                    if (v.contains("### Query")) {
+                        val p = parseCaptured(v)
+                        query = p.query
+                        p.variables?.let { variables = it }
+                        p.operation?.let { operation = it }
+                        p.url?.let { url = it }
+                    } else query = v
+                },
                 label = { Text("Запрос (query / mutation)") }, minLines = 6, maxLines = 14,
                 textStyle = androidx.compose.ui.text.TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp),
             )
@@ -99,16 +114,23 @@ fun ApiConsoleScreen(onBack: () -> Unit) {
                 Button(enabled = !sending && query.isNotBlank(), onClick = {
                     sending = true; status = null
                     scope.launch {
-                        val d = SenkuroConfig.DOMAINS.firstOrNull { it.id == domainId } ?: SenkuroConfig.current
-                        val r = AppGraph.rawApi.raw(d.apiUrl, operation, query, variables)
+                        val r = AppGraph.rawApi.raw(url.trim(), operation, query, variables)
                         status = r.error?.let { "Ошибка: $it" } ?: "HTTP ${r.code} · ${r.millis} мс · ${r.body.length} симв."
                         response = pretty(r.body).take(200_000)
                         sending = false
                     }
                 }) { Text(if (sending) "Отправка…" else "Отправить") }
                 TextButton(onClick = {
-                    query = clipboard().primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString().orEmpty()
-                }) { Text("Вставить запрос") }
+                    val text = clipboard().primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString().orEmpty()
+                    val p = parseCaptured(text)
+                    query = p.query
+                    p.variables?.let { variables = it }
+                    p.operation?.let { operation = it }
+                    p.url?.let { url = it }
+                    status = "Вставлено из буфера: " + listOfNotNull(
+                        p.operation, if (p.url != null) "URL" else null, if (p.variables != null) "переменные" else null,
+                    ).joinToString(", ").ifEmpty { "запрос" }
+                }) { Text("Вставить из логгера") }
                 TextButton(onClick = { query = ""; variables = "{}"; response = ""; status = null }) { Text("Очистить") }
             }
             status?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp) }
@@ -127,3 +149,43 @@ fun ApiConsoleScreen(onBack: () -> Unit) {
         }
     }
 }
+
+
+private class Captured(val query: String, val variables: String?, val operation: String?, val url: String?)
+
+/**
+ * Разбирает вставленный текст целиком: экспорт логгера («## 1. fetchManga», «URL:», «### Query», «### Variables»),
+ * JSON-тело запроса {"query","variables","operationName"} либо просто текст запроса.
+ */
+private fun parseCaptured(raw: String): Captured {
+    val text = raw.trim()
+    // 1) JSON-тело запроса
+    if (text.startsWith("{")) {
+        runCatching {
+            val o = JSONObject(text)
+            if (o.has("query")) {
+                val v = o.opt("variables")
+                return Captured(
+                    o.getString("query"),
+                    when (v) { is JSONObject -> v.toString(2); is String -> v; else -> null },
+                    o.optString("operationName").takeIf { it.isNotBlank() && it != "null" },
+                    null,
+                )
+            }
+        }
+    }
+    // 2) экспорт логгера
+    if (text.contains("### Query")) {
+        val url = Regex("(?m)^URL:\\s*(\\S+)").find(text)?.groupValues?.get(1)
+        val section = Regex("(?s)### Query\\s*\\n(.*?)(?=\\n### |\\z)").find(text)?.groupValues?.get(1)?.trim().orEmpty()
+        val vars = Regex("(?s)### Variables\\s*\\n(.*?)(?=\\n### |\\z)").find(text)?.groupValues?.get(1)?.trim()
+            ?.let { v -> runCatching { if (v.startsWith("{")) JSONObject(v).toString(2) else v }.getOrDefault(v) }
+        val op = Regex("(?m)^##\\s*\\d+\\.\\s*(\\w+)").find(text)?.groupValues?.get(1) ?: operationOf(section)
+        return Captured(section, vars, op, url)
+    }
+    // 3) просто запрос
+    return Captured(text, null, operationOf(text), null)
+}
+
+private fun operationOf(query: String): String? =
+    Regex("(?:query|mutation|subscription)\\s+(\\w+)").find(query)?.groupValues?.get(1)
