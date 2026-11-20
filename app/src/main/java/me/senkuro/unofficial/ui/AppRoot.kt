@@ -129,7 +129,7 @@ fun AppRoot() {
     val appDark by AppGraph.themeDark.collectAsState()
     val showBar = topLevel.any { it.route == route }
 
-    val openManga: (MangaItem) -> Unit = { nav.navigate(Routes.manga(it.id)) }
+    val openManga: (MangaItem) -> Unit = { AppGraph.rememberSlug(it.id, it.slug); nav.navigate(Routes.manga(it.id)) }
     val navigateTop: (String) -> Unit = { target ->
         // Главная — начальный экран и всегда лежит внизу стека: к ней просто возвращаемся.
         // Через navigate(HOME) + restoreState система поднимала сохранённое состояние другой вкладки (закладки).

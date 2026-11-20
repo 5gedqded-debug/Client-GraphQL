@@ -249,9 +249,14 @@ class DetailsViewModel : ViewModel() {
 
     private var loadedId: String? = null
 
+    /** Тайтл не открылся целиком, и он лицензирован / закрыт в регионе: вместо страницы показывается заглушка. */
+    var blocked by mutableStateOf(false)
+        private set
+
     fun load(mangaId: String, force: Boolean = false) {
         if (!force && loadedId == mangaId) return
         loadedId = mangaId
+        blocked = false
         state = UiState.Loading
         viewModelScope.launch {
             state = try {
@@ -275,6 +280,8 @@ class DetailsViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                val slug = AppGraph.slugFor(mangaId)
+                blocked = slug != null && AppGraph.repository.chaptersRestricted(slug)
                 UiState.Error(e.readable())
             }
         }
