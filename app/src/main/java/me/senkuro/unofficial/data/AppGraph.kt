@@ -24,6 +24,7 @@ object AppGraph {
     val pendingCatalogLabel = MutableStateFlow<String?>(null)
 
     lateinit var httpClient: OkHttpClient
+    lateinit var rawApi: SenkuroApi
         private set
     lateinit var repository: SenkuroRepository
         private set
@@ -77,6 +78,16 @@ object AppGraph {
     /** id тайтла -> название коллекции закладок (для подписей на постерах). */
     val marks: StateFlow<Map<String, String>> = _marks.asStateFlow()
 
+    private val _savedFilters = MutableStateFlow<List<SavedFilter>>(emptyList())
+
+    /** Сохранённые наборы фильтров каталога (локально). */
+    val savedFilters: StateFlow<List<SavedFilter>> = _savedFilters.asStateFlow()
+
+    fun setSavedFilters(list: List<SavedFilter>) {
+        _savedFilters.value = list
+        settings.edit().putString("saved_catalog_filters", SavedFiltersCodec.encode(list)).apply()
+    }
+
     private var marksJob: Job? = null
 
     /** Загружает все закладки аккаунта, чтобы подписывать постеры («Брошено», «Прочитано»…). */
@@ -120,13 +131,31 @@ object AppGraph {
 
     /** Аккаунт на сайте (null — не вошли или ещё загружается). */
     val account: StateFlow<Account?> = _account.asStateFlow()
+
+    /**
+     * slug тайтла по id. Сайт открывает тайтл по slug (`manga(slug)`), а приложение ходит по id, поэтому пара
+     * запоминается при открытии тайтла из любого списка и сохраняется на диск (переживает перезапуск приложения).
+     */
+    private val slugById = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private var slugPrefs: SharedPreferences? = null
+
+    fun rememberSlug(id: String, slug: String) {
+        if (slug.isBlank()) return
+        if (slugById.put(id, slug) != slug) slugPrefs?.edit()?.putString(id, slug)?.apply()
+    }
+
+    fun slugFor(id: String): String? =
+        slugById[id] ?: slugPrefs?.getString(id, null)?.also { slugById[id] = it }
+
     val accountError: StateFlow<String?> = _accountError.asStateFlow()
 
     fun init(app: Application) {
         Updater.init(app)
         settings = app.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        slugPrefs = app.getSharedPreferences("manga_slugs", android.content.Context.MODE_PRIVATE)
         SenkuroConfig.current = SenkuroConfig.byId(settings.getString(KEY_DOMAIN, null))
         _domain.value = SenkuroConfig.current
+        settings.getString("saved_catalog_filters", null)?.let { SavedFiltersCodec.decode(it) }?.let { _savedFilters.value = it }
 
         _themeDark.value = settings.getBoolean(KEY_DARK, false)
         _streamer.value = settings.getBoolean(KEY_STREAMER, false)
@@ -135,6 +164,7 @@ object AppGraph {
             .stateIn(scope, SharingStarted.Eagerly, false)
         httpClient = createHttpClient { auth.current }
         val api = SenkuroApi(app, httpClient)
+        rawApi = api
         repository = SenkuroRepository(api)
         social = SocialRepository(api)
         cards = CardsRepository(api)
@@ -157,6 +187,16 @@ object AppGraph {
         _unread.value = 0
         _domain.value = domain
         refreshAccount()
+    }
+
+    /** Тайтлы, для которых пользователь отказался от подсказки «добавить в закладки» в читалке. */
+    fun bookmarkPromptDeclined(mangaId: String): Boolean =
+        settings.getStringSet("bookmark_prompt_declined", emptySet())?.contains(mangaId) == true
+
+    fun declineBookmarkPrompt(mangaId: String) {
+        val set = (settings.getStringSet("bookmark_prompt_declined", emptySet()) ?: emptySet()).toMutableSet()
+        set.add(mangaId)
+        settings.edit().putStringSet("bookmark_prompt_declined", set).apply()
     }
 
     /** Показано ли стартовое предупреждение о неофициальности приложения. */

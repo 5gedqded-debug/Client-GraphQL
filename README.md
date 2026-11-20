@@ -28,7 +28,7 @@
 
 Список запросов и их назначение — в [docs/graphql.md](docs/graphql.md).
 
-Запросы вынесены из приложенных расширений Senkuro (Tachiyomi/Aidoku). Заголовки клиента и адреса — в
+Запросы — те же, что выполняет сайт senkuro.me (взяты из его JS). Заголовки клиента и адреса — в
 [`SenkuroConfig.kt`](app/src/main/java/me/senkuro/unofficial/data/SenkuroConfig.kt).
 
 ## Сборка

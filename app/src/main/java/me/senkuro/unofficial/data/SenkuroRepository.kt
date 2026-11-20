@@ -2,6 +2,7 @@ package me.senkuro.unofficial.data
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -28,55 +29,11 @@ class SenkuroRepository(private val api: SenkuroApi) {
 
     // ---------------------------------------------------------------- Каталог
 
-    suspend fun search(query: String?, filters: CatalogFilters, offset: Int): List<MangaItem> {
-        val variables = buildJsonObject {
-            if (!query.isNullOrBlank()) put("query", query.trim())
-            for (group in FilterDefs.tachiyomiGroups + FilterDefs.GROUP_LABEL) {
-                filters.filterJson(group)?.let { put(group, it) }
-            }
-            put(
-                "orderBy",
-                buildJsonObject {
-                    put("direction", if (filters.ascending) "ASC" else "DESC")
-                    put("field", filters.orderField)
-                },
-            )
-            put("offset", offset)
-        }
-        val response = api.execute(
-            "searchTachiyomiManga", "searchTachiyomiManga", variables, SearchResponse.serializer(),
-        )
-        return withSiteScores(response.mangaTachiyomiSearch.mangas.mapNotNull { it.toItem() })
-    }
-
     /**
-     * В поиске Tachiyomi нет поля score (тип MangaTachiyomiSearch его не знает), поэтому оценки для найденных
-     * тайтлов берутся запросом сайта `manga(slug)` — одним запросом с алиасами. Оценки необязательны: при ошибке
-     * список возвращается без них.
-     */
-    private suspend fun withSiteScores(items: List<MangaItem>): List<MangaItem> {
-        if (items.isEmpty()) return items
-        return try {
-            val vars = buildJsonObject { items.forEachIndexed { i, m -> put("s$i", m.slug) } }
-            val decl = items.indices.joinToString(", ") { "\$s$it: String!" }
-            val body = items.indices.joinToString("\n") { "  m$it: manga(slug: \$s$it) { score }" }
-            val root = api.executeText("fetchMangaScores", "query fetchMangaScores($decl) {\n$body\n}", vars, JsonObject.serializer())
-            items.mapIndexed { i, m ->
-                val sc = scoreText((root["m$i"] as? JsonObject)?.get("score"))
-                if (sc != null) m.copy(score = sc) else m
-            }
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (_: Exception) {
-            items
-        }
-    }
-
-    /**
-     * Каталог «как на сайте»: запрос `mangas` (его же использует страница каталога senkuro.me). Нужен для сортировки
-     * по датам (`CREATED_AT`, `LAST_CHAPTER_AT`) — в поиске Tachiyomi таких полей нет. Постраничность курсорная,
-     * фильтры те же, что и в [search], а «Статус закладок» сервер применяет сам (`bookmarkCollections`).
-     * [bookmarkIds] — название коллекции закладок -> её id. Возвращает страницу и курсор следующей (null — конец).
+     * Каталог и поиск — запрос сайта `mangas` (fetchMangas), тот же, что у страницы каталога senkuro.me.
+     * Постраничность курсорная, оценка тайтла приходит в самом ответе, а «Статус закладок» сервер применяет сам
+     * (`bookmarkCollections`). [bookmarkIds] — название коллекции закладок -> её id.
+     * Возвращает страницу и курсор следующей (null — конец).
      */
     suspend fun searchSite(
         query: String?,
@@ -84,7 +41,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
         bookmarkIds: Map<String, String>,
         after: String?,
     ): Pair<List<MangaItem>, String?> {
-        // Группа фильтра в приложении -> имя переменной в запросе сайта (у сайта «translitionStatus» с опечаткой).
+        // Группа фильтра в приложении -> имя переменной в запросе (у сайта «translitionStatus» с опечаткой).
         val groups = mapOf(
             "type" to "type", "format" to "format", "status" to "status", "rating" to "rating",
             "translationStatus" to "translitionStatus", FilterDefs.GROUP_LABEL to "label",
@@ -126,7 +83,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
             put("orderDirection", if (filters.ascending) "ASC" else "DESC")
         }
         val connection = api.execute(
-            "fetchMangas", "fetchCatalogMangas", variables, CMangasResponse.serializer(),
+            "fetchMangas", "fetchMangas", variables, CMangasResponse.serializer(),
         ).mangas
         val items = connection.edges.mapNotNull { it.node.toItem() }
         return items to connection.pageInfo.endCursor.takeIf { connection.pageInfo.hasNextPage }
@@ -137,8 +94,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
 
     /**
      * Группы меток каталога «как на сайте»: запрос `allLabels` (корень группы — метка с depth 0, метки идут в порядке
-     * популярности). Корни с рейтингом 18+ скрыты, как на сайте без режима Senkognito. Если запрос не удался —
-     * запасной вариант: метки из поиска Tachiyomi и известные корневые группы.
+     * популярности). Корни с рейтингом 18+ скрыты, как на сайте без режима Senkognito.
      */
     suspend fun labelGroups(): List<LabelGroup> {
         labelGroupsCache?.let { return it }
@@ -148,7 +104,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
             throw e
         } catch (_: Exception) {
             emptyList()
-        }.ifEmpty { legacyLabelGroups() }
+        }.let { RestrictedLabels.filterGroups(it) }
         labelGroupsCache = groups
         return groups
     }
@@ -177,18 +133,6 @@ class SenkuroRepository(private val api: SenkuroApi) {
             if (root == null || root.rating.equals("EXPLICIT", true)) return@mapNotNull null
             val labels = children[rootId].orEmpty()
             if (labels.isEmpty()) null else LabelGroup(rootId, root.titles?.localized() ?: root.slug, labels)
-        }
-    }
-
-    private suspend fun legacyLabelGroups(): List<LabelGroup> {
-        val response = api.execute(
-            "fetchTachiyomiSearchFilters", "fetchTachiyomiSearchFilters", JsonObject(emptyMap()),
-            FiltersResponse.serializer(),
-        )
-        val labels = response.mangaTachiyomiSearchFilters.labels
-            .map { LabelItem(it.slug, it.titles.localized() ?: it.slug, it.rootId) }
-        return FilterDefs.labelRoots.mapNotNull { (rootId, title) ->
-            labels.filter { it.rootId == rootId }.takeIf { it.isNotEmpty() }?.let { LabelGroup(rootId, title, it) }
         }
     }
 
@@ -240,100 +184,95 @@ class SenkuroRepository(private val api: SenkuroApi) {
 
     // ------------------------------------------------------------ Тайтл и главы
 
-    suspend fun details(mangaId: String): MangaDetails {
-        synchronized(detailsCache) { detailsCache[mangaId] }?.let { return it }
-        val response = api.execute(
-            "fetchTachiyomiManga", "fetchTachiyomiManga", mangaVars(mangaId), InfoResponse.serializer(),
-        )
-        val dto = response.mangaTachiyomiInfo ?: throw ApiException("Тайтл не найден")
-        val details = dto.toDetails()
+    private val mangaCache = HashMap<String, SiteMangaDto>()
+    private val mangaLock = kotlinx.coroutines.sync.Mutex()
+
+    /** Страница тайтла — запрос сайта `manga(slug)` (fetchManga). Сайт ищет тайтл по slug, а не по id. */
+    private suspend fun siteManga(mangaId: String, force: Boolean = false): SiteMangaDto = mangaLock.withLock {
+        if (!force) synchronized(mangaCache) { mangaCache[mangaId] }?.let { return@withLock it }
+        val slug = AppGraph.slugFor(mangaId) ?: throw ApiException("Тайтл не найден")
+        val dto = api.execute(
+            "fetchManga", "fetchManga", buildJsonObject { put("slug", slug) }, SiteMangaResponse.serializer(),
+        ).manga ?: throw ApiException("Тайтл не найден")
+        synchronized(mangaCache) { mangaCache[mangaId] = dto }
+        dto
+    }
+
+    suspend fun details(mangaId: String, force: Boolean = false): MangaDetails {
+        if (!force) synchronized(detailsCache) { detailsCache[mangaId] }?.let { return it }
+        val details = siteManga(mangaId, force).toDetails()
         synchronized(detailsCache) { detailsCache[mangaId] = details }
         return details
     }
 
+    /**
+     * Главы тайтла, как на сайте: ветки берутся из `manga.branches`, главы каждой ветки — запросом
+     * `mangaChapters` (fetchMangaChapters) по 100 с курсором.
+     */
     suspend fun chapters(mangaId: String, force: Boolean = false): ChaptersResult {
         if (!force) synchronized(chaptersCache) { chaptersCache[mangaId] }?.let { return it }
-        val response = api.execute(
-            "fetchTachiyomiChapters", "fetchTachiyomiChapters", mangaVars(mangaId),
-            ChaptersResponse.serializer(),
-        )
-        val dto = response.mangaTachiyomiChapters
-        val teams = dto.teams.associate { it.id to it.name }
-        // tachiyomi-ответ бывает неполным (новые главы приходят позже): добираем недостающие запросом сайта.
-        val known = dto.chapters.map { it.id }.toHashSet()
-        val extra = mutableListOf<ChapterDto>()
-        for (branch in dto.chapters.map { it.branchId }.filter { it.isNotBlank() }.distinct()) {
-            runCatching {
-                var after: String? = null
-                var guard = 0
-                do {
-                    val vars = buildJsonObject {
-                        put("branchId", branch)
-                        put("orderBy", buildJsonObject { put("field", "NUMBER"); put("direction", "DESC") })
-                        if (after != null) put("after", after)
-                    }
-                    val page = api.execute("fetchMangaChapters", "fetchMangaChapters", vars, SiteChaptersResponse.serializer()).mangaChapters
-                    var allKnown = true
-                    page.edges.forEach { e ->
-                        if (known.add(e.node.id)) { extra.add(e.node.copy(branchId = branch)); allKnown = false }
-                    }
-                    after = page.pageInfo.endCursor.takeIf { page.pageInfo.hasNextPage && !allKnown }
-                } while (after != null && ++guard < 5)
+        val manga = siteManga(mangaId)
+        val teamNames = HashMap<String, String>()
+        for (branch in manga.branches.orEmpty()) {
+            for (activity in branch.teamActivities.orEmpty()) {
+                val team = activity.team ?: continue
+                if (team.id.isNotBlank()) teamNames[team.id] = team.name
             }
         }
-        val merged = if (extra.isEmpty()) dto.chapters else (dto.chapters + extra).sortedWith(
-            compareByDescending<ChapterDto> { it.volume.toDoubleOrNull() ?: 0.0 }.thenByDescending { it.number.toDoubleOrNull() ?: 0.0 },
-        )
-        val chapters = merged.map { c ->
-            Chapter(
-                id = c.id,
-                slug = c.slug,
-                branchId = c.branchId,
-                name = c.name,
-                number = c.number,
-                volume = c.volume,
-                date = (c.updatedAt ?: c.createdAt)?.take(10),
-                teams = c.teamIds.mapNotNull { teams[it] },
-            )
+        val chapters = ArrayList<Chapter>()
+        for (branch in manga.branches.orEmpty()) {
+            var after: String? = null
+            var guard = 0
+            do {
+                val vars = buildJsonObject {
+                    put("branchId", branch.id)
+                    put("orderBy", buildJsonObject { put("field", "NUMBER"); put("direction", "DESC") })
+                    if (after != null) put("after", after)
+                }
+                val page = api.execute(
+                    "fetchMangaChapters", "fetchMangaChapters", vars, SiteChaptersResponse.serializer(),
+                ).mangaChapters
+                page.edges.forEach { e ->
+                    val c = e.node
+                    chapters += Chapter(
+                        id = c.id,
+                        slug = c.slug,
+                        branchId = branch.id,
+                        name = c.name,
+                        number = c.number.text().orEmpty(),
+                        volume = c.volume.text().orEmpty(),
+                        date = c.createdAt?.take(10),
+                        teams = c.teamIds.mapNotNull { teamNames[it] },
+                    )
+                }
+                after = page.pageInfo.endCursor.takeIf { page.pageInfo.hasNextPage }
+            } while (after != null && ++guard < 200)
         }
-        val result = ChaptersResult(chapters, dto.message)
+        chapters.sortWith(
+            compareByDescending<Chapter> { it.volume.toDoubleOrNull() ?: 0.0 }.thenByDescending { it.number.toDoubleOrNull() ?: 0.0 },
+        )
+        val result = ChaptersResult(chapters)
         synchronized(chaptersCache) { chaptersCache[mangaId] = result }
         return result
     }
 
     // ------------------------------------------------------------------ Ридер
 
-    /** Страницы тем же запросом, что использует сайт (по slug главы). */
-    suspend fun sitePages(chapter: Chapter): List<String> {
+    /**
+     * Страницы главы — запрос сайта `mangaChapter(slug)` (fetchMangaChapter, `cdnQuality: "auto"` как у ридера сайта).
+     * [compressed] — сжатая версия картинок (`compress`), которую сайт использует при включённом сжатии.
+     */
+    suspend fun pages(chapter: Chapter, compressed: Boolean = false): List<String> {
         val vars = buildJsonObject {
             put("slug", chapter.slug)
-            put("cdn_quality", "red")
+            put("cdnQuality", "auto")
         }
-        return api.execute("Reader", "readerChapter", vars, ReaderResponse.serializer())
-            .mangaChapter?.pages?.mapNotNull { it.image?.original?.url }?.filter { it.isNotBlank() }.orEmpty()
-    }
-
-    /** Сначала tachiyomi-запрос страниц, при неудаче — запрос ридера сайта по slug главы. */
-    suspend fun pages(mangaId: String, chapter: Chapter): List<String> {
-        val primary = runCatching {
-            val vars = buildJsonObject {
-                put("mangaId", mangaId)
-                put("chapterId", chapter.id)
-            }
-            api.execute(
-                "fetchTachiyomiChapterPages", "fetchTachiyomiChapterPages", vars,
-                PagesResponse.serializer(),
-            ).mangaTachiyomiChapterPages.pages.map { it.url }.filter { it.isNotBlank() }
-        }
-        primary.exceptionOrNull()?.let { ReaderErrorLog.add("Страницы: tachiyomi-запрос", "глава ${chapter.slug} (${chapter.id})", it) }
-        if (primary.isSuccess && primary.getOrNull().isNullOrEmpty()) ReaderErrorLog.add("Страницы: tachiyomi-запрос", "пустой список, глава ${chapter.slug}")
-        primary.getOrNull()?.takeIf { it.isNotEmpty() }?.let { return it }
-
-        val fallback = runCatching { sitePages(chapter) }
-        fallback.exceptionOrNull()?.let { ReaderErrorLog.add("Страницы: запрос сайта", "глава ${chapter.slug}", it) }
-        fallback.getOrNull()?.takeIf { it.isNotEmpty() }?.let { return it }
-
-        throw (primary.exceptionOrNull() ?: fallback.exceptionOrNull() ?: ApiException("В главе нет страниц"))
+        val urls = api.execute("fetchMangaChapter", "fetchMangaChapter", vars, ReaderResponse.serializer())
+            .mangaChapter?.pages.orEmpty()
+            .mapNotNull { if (compressed) it.image?.compress?.url else it.image?.original?.url }
+            .filter { it.isNotBlank() }
+        if (urls.isEmpty()) throw ApiException("В главе нет страниц")
+        return urls
     }
 
     // ------------------------------------------------------- Аккаунт и закладки сайта
@@ -670,9 +609,9 @@ class SenkuroRepository(private val api: SenkuroApi) {
     suspend fun pageIds(chapterSlug: String): List<String> {
         val vars = buildJsonObject {
             put("slug", chapterSlug)
-            put("cdn_quality", "red")
+            put("cdnQuality", "auto")
         }
-        return api.execute("Reader", "readerChapter", vars, ReaderResponse.serializer())
+        return api.execute("fetchMangaChapter", "fetchMangaChapter", vars, ReaderResponse.serializer())
             .mangaChapter?.pages?.map { it.id }?.filter { it.isNotBlank() }.orEmpty()
     }
 
@@ -1068,13 +1007,19 @@ class SenkuroRepository(private val api: SenkuroApi) {
         )
     }
 
-    private fun MangaInfoDto.toDetails(): MangaDetails {
+    private fun SiteMangaDto.toDetails(): MangaDetails {
         val authorRoles = setOf("STORY", "STORY_AND_ART", "ORIGINAL_CREATOR")
         val artistRoles = setOf("ART", "STORY_AND_ART")
         fun names(roles: Set<String>) = mainStaff.orEmpty()
             .filter { s -> s.roles.any { it in roles } }
             .joinToString { it.person.name }
             .ifBlank { null }
+
+        // Описание на сайте — документ Tiptap; берём текст русской локализации, иначе первой доступной.
+        val localization = localizations.orEmpty().let { list ->
+            list.firstOrNull { it.lang.equals("RU", true) && tiptapText(it.description).isNotBlank() }
+                ?: list.firstOrNull { tiptapText(it.description).isNotBlank() }
+        }
 
         return MangaDetails(
             item = MangaItem(
@@ -1086,18 +1031,37 @@ class SenkuroRepository(private val api: SenkuroApi) {
                 age = ageName(rating),
             ),
             altNames = alternativeNames.orEmpty().map { it.content }.filter { it.isNotBlank() }.distinct(),
-            description = localizations.orEmpty()
-                .firstOrNull { it.lang.equals("RU", true) }?.description.orEmpty()
-                .ifBlank { localizations.orEmpty().firstNotNullOfOrNull { it.description }.orEmpty() },
+            description = tiptapText(localization?.description),
             type = typeName(type),
             status = statusName(status),
             ageRating = ageName(rating),
             formats = formats.orEmpty().mapNotNull { formatName(it) },
-            translationStatus = translationName(translationStatus),
+            translationStatus = translationName(translitionStatus),
             labels = labels.orEmpty().mapNotNull { it.titles.localized()?.ifBlank { null } },
             authors = names(authorRoles),
             artists = names(artistRoles),
+            restricted = isLicensed == true || viewerInBlockedCountry == true,
         )
+    }
+
+    /** Текст из документа Tiptap (массив или объект с `content`): абзацы разделены переводом строки. */
+    private fun tiptapText(node: JsonElement?): String {
+        fun walk(e: JsonElement?, out: StringBuilder) {
+            when (e) {
+                is JsonArray -> e.forEach { walk(it, out) }
+                is kotlinx.serialization.json.JsonObject -> {
+                    (e["text"] as? JsonPrimitive)?.contentOrNull?.let { out.append(it) }
+                    if (e["type"]?.text() == "hardBreak") out.append('\n')
+                    val children = e["content"]
+                    walk(children, out)
+                    if (children != null && e["type"]?.text() in setOf("paragraph", "heading", "listItem", "blockquote")) out.append('\n')
+                }
+                else -> {}
+            }
+        }
+        val sb = StringBuilder()
+        walk(node, sb)
+        return sb.toString().trim()
     }
 
     private fun typeName(v: String?) = when (v) {

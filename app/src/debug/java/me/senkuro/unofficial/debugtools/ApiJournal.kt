@@ -65,7 +65,7 @@ object ApiJournal {
         "fetchMangaBookmarkNextChapters", "fetchUserBookmarks",
         "HomeLatest", "HomeNew", "HomePopular", "HomeRecommendations",
         "viewAd", "fetchNotificationFeeds",
-        "searchTachiyomiManga", "fetchTachiyomiSearchFilters", "fetchTachiyomiChapters", "fetchTachiyomiManga", "viewManga",
+        "fetchMangas", "fetchMangaFilters", "fetchManga", "fetchMangaChapter", "viewManga",
         "fetchActivities", "fetchConversationMessages", "readConversationMessage", "updateConversationMessage",
         "fetchFeed", "fetchShortsMangaChapters",
         "forgeCards", "HomePopularPeriod", "fetchPendingCardContest", "votePendingCard", "fetchPosts", "fetchPost", "viewPost", "openCardPack", "fetchPendingPackOpens", "bulkChooseCardPackOpen",

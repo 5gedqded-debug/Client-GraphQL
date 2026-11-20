@@ -30,7 +30,7 @@ import me.senkuro.unofficial.data.SenkuroConfig
 
 /** Настройки: тёмная тема, режим стримера, обновления, разделы аккаунта. */
 @Composable
-fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onShop: () -> Unit = {}, onShorts: () -> Unit = {}, onJournal: (() -> Unit)? = null, onCapture: (() -> Unit)? = null, onSiteVersion: (() -> Unit)? = null) {
+fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onShop: () -> Unit = {}, onShorts: () -> Unit = {}, onJournal: (() -> Unit)? = null, onCapture: (() -> Unit)? = null, onSiteVersion: (() -> Unit)? = null, onConsole: (() -> Unit)? = null) {
     val dark by AppGraph.themeDark.collectAsState()
     val streamer by AppGraph.streamerMode.collectAsState()
     val token by AppGraph.auth.token.collectAsState()
@@ -85,7 +85,7 @@ fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onShop:
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         UpdateSettings()
-        if (onJournal != null || onCapture != null || onSiteVersion != null || SenkuroConfig.DOMAINS.size > 1) {
+        if (onJournal != null || onCapture != null || onSiteVersion != null || onConsole != null || SenkuroConfig.DOMAINS.size > 1) {
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionLabel("Debug")
             // Домен API: только в debug (в release доменов нет, кроме основного). Токен входа общий для всех доменов.
@@ -114,6 +114,7 @@ fun SettingsScreen(onPosts: () -> Unit = {}, onCardHub: () -> Unit = {}, onShop:
                 }
             }
             if (onJournal != null) TextButton(onClick = onJournal, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Журнал запросов (debug)") }
+            if (onConsole != null) TextButton(onClick = onConsole, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Консоль API: свои запросы и ответы (debug)") }
             if (onCapture != null) TextButton(onClick = onCapture, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Отладка: перехват запросов сайта (debug)") }
             if (onSiteVersion != null) TextButton(onClick = onSiteVersion, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Версия сайта: App-Version и App-Id (debug)") }
         }

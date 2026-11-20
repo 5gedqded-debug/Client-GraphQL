@@ -253,6 +253,7 @@ private fun DetailsContent(data: DetailsData, readIds: Set<String>, onRead: (Cha
         }
     }
     val readLabel = when {
+        data.restricted -> "Главы недоступны"
         continueFrom == null -> "Нет глав"
         bookmarkChapter != null -> "Продолжить: глава ${bookmarkChapter.number}" + if (bookmarkPage > 1) ", стр. $bookmarkPage" else ""
         continueFrom.id in readIds -> "Читать заново"
@@ -433,12 +434,27 @@ private fun DetailsContent(data: DetailsData, readIds: Set<String>, onRead: (Cha
                 if (chapterQuery.isNotBlank() && chaptersDescending.isEmpty()) {
                     Text("Ничего не найдено", color = AppColors.DarkSecondary, fontSize = 12.sp)
                 }
-                data.chapters.message?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, color = AppColors.DarkSecondary, fontSize = 12.sp)
-                }
                 data.chaptersError?.let {
                     Text("Не удалось загрузить главы: $it", color = AppColors.DarkSecondary, fontSize = 12.sp)
                 }
+            }
+        }
+
+        if (tab == TitleTab.CHAPTERS && data.restricted) item(key = "chapters-restricted") {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 21.dp, vertical = 8.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("🛸", fontSize = 36.sp)
+                Text(
+                    "К сожалению, лиса не может отобразить главы, т.к. их похитили инопланетяне.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
             }
         }
 

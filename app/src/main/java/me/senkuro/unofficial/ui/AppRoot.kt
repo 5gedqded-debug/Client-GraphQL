@@ -63,6 +63,7 @@ private object Routes {
     const val LIBRARY = "library"
     const val DEBUG = "debug"
     const val API_JOURNAL = "apijournal"
+    const val API_CONSOLE = "apiconsole"
     const val SITE_VERSION = "siteversion"
     const val LOGIN = "login"
     const val SETTINGS = "settings"
@@ -129,7 +130,7 @@ fun AppRoot() {
     val appDark by AppGraph.themeDark.collectAsState()
     val showBar = topLevel.any { it.route == route }
 
-    val openManga: (MangaItem) -> Unit = { nav.navigate(Routes.manga(it.id)) }
+    val openManga: (MangaItem) -> Unit = { AppGraph.rememberSlug(it.id, it.slug); nav.navigate(Routes.manga(it.id)) }
     val navigateTop: (String) -> Unit = { target ->
         // Главная — начальный экран и всегда лежит внизу стека: к ней просто возвращаемся.
         // Через navigate(HOME) + restoreState система поднимала сохранённое состояние другой вкладки (закладки).
@@ -270,6 +271,7 @@ fun AppRoot() {
                                 onJournal = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.API_JOURNAL) }) else null,
                                 onCapture = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.DEBUG) }) else null,
                                 onSiteVersion = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.SITE_VERSION) }) else null,
+                                onConsole = if (BuildConfig.DEBUG_TOOLS) ({ nav.navigate(Routes.API_CONSOLE) }) else null,
                             )
                         }
                     }
@@ -372,6 +374,9 @@ fun AppRoot() {
                     }
                     composable(Routes.SITE_VERSION) {
                         UnofficialTheme(dark = appDark) { DebugTools.SiteVersionScreen(onBack = { nav.popBackStack() }) }
+                    }
+                    composable(Routes.API_CONSOLE) {
+                        UnofficialTheme(dark = appDark) { ApiConsoleScreen(onBack = { nav.popBackStack() }) }
                     }
                     composable(Routes.API_JOURNAL) {
                         UnofficialTheme(dark = appDark) { DebugTools.JournalScreen(onBack = { nav.popBackStack() }) }

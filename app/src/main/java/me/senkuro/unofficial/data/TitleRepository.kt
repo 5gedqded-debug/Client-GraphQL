@@ -44,7 +44,7 @@ data class TitleTeam(val slug: String, val name: String, val avatar: String?, va
 data class TitlePublisher(val slug: String, val name: String, val logo: String?)
 data class TitleListCount(val collectionId: String, val count: Int)
 
-/** Данные вкладок «О тайтле» и «Статистика», которых нет в кратком tachiyomi-ответе. */
+/** Данные вкладок «О тайтле» и «Статистика» (запрос сайта fetchMangaPage). */
 data class TitlePage(
     val mangaId: String,
     val score: Double?,

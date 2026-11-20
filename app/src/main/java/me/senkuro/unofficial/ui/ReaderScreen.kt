@@ -7,6 +7,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -69,6 +73,7 @@ fun ReaderScreen(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var showComments by remember { mutableStateOf(false) }
     var showErrors by remember { mutableStateOf(false) }
+    var pageComments by remember { mutableStateOf<Int?>(null) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val widthPx = ctx.resources.displayMetrics.widthPixels
     val errorCount = me.senkuro.unofficial.data.ReaderErrorLog.entries.size
@@ -101,6 +106,19 @@ fun ReaderScreen(
 
             is UiState.Ready -> {
                 val data = state.data
+                // счётчик комментариев текущей страницы (первая выдача комментариев, до 99+)
+                val curPage = listState.firstVisibleItemIndex
+                LaunchedEffect(data.chapter.slug, curPage) {
+                    pageComments = null
+                    kotlinx.coroutines.delay(600)
+                    try {
+                        val ids = AppGraph.repository.pageIds(data.chapter.slug)
+                        val id = ids.getOrNull(curPage) ?: return@LaunchedEffect
+                        pageComments = AppGraph.repository.comments(id, null).items.size
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (_: Exception) { }
+                }
                 var urls by remember(data.chapter.id) { mutableStateOf(data.pages) }
                 val screenWidthPx = with(androidx.compose.ui.platform.LocalDensity.current) {
                     androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.roundToPx()
@@ -206,7 +224,7 @@ fun ReaderScreen(
                             onError = { st ->
                                 if (st.result.throwable is OutOfMemoryError) siteTried = true
                                 me.senkuro.unofficial.data.ReaderErrorLog.add(
-                                    "Картинка: страница ${index + 1}" + if (siteTried) " (после переключения на метод сайта)" else "",
+                                    "Картинка: страница ${index + 1}" + if (siteTried) " (после переключения на сжатые картинки)" else "",
                                     url, st.result.throwable,
                                 )
                             },
@@ -219,17 +237,17 @@ fun ReaderScreen(
                                 ) { CircularProgressIndicator(color = Color.White) }
                             },
                             error = {
-                                // Страницы по умолчанию не загрузились — один раз переключаемся на метод сайта.
+                                // Оригиналы не загрузились — один раз переключаемся на сжатые картинки сайта (`compress`).
                                 LaunchedEffect(data.chapter.id) {
                                     if (!siteTried) {
                                         siteTried = true
-                                        me.senkuro.unofficial.data.ReaderErrorLog.add("Переключение на метод сайта", "глава ${data.chapter.slug}")
+                                        me.senkuro.unofficial.data.ReaderErrorLog.add("Переключение на сжатые картинки", "глава ${data.chapter.slug}")
                                         try {
-                                            val alt = AppGraph.repository.sitePages(data.chapter)
+                                            val alt = AppGraph.repository.pages(data.chapter, compressed = true)
                                             if (alt.isNotEmpty() && alt != urls) urls = alt
-                                            else me.senkuro.unofficial.data.ReaderErrorLog.add("Метод сайта", "новых адресов нет (${alt.size} шт.)")
+                                            else me.senkuro.unofficial.data.ReaderErrorLog.add("Сжатые картинки", "новых адресов нет (${alt.size} шт.)")
                                         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
-                                            me.senkuro.unofficial.data.ReaderErrorLog.add("Метод сайта", "запрос не удался", e)
+                                            me.senkuro.unofficial.data.ReaderErrorLog.add("Сжатые картинки", "запрос не удался", e)
                                         }
                                     }
                                 }
@@ -266,6 +284,13 @@ fun ReaderScreen(
                     }
                 }
 
+                var showChapters by remember { mutableStateOf(false) }
+                ReaderBookmarkPrompt(data.manga, data.chapter.numberValue)
+                if (showChapters) ReaderChapterSheet(
+                    mangaId = mangaId, current = data.chapter,
+                    onOpen = { showChapters = false; if (it.id != data.chapter.id) onOpenChapter(it) },
+                    onDismiss = { showChapters = false },
+                )
                 if (controls) {
                     Row(
                         modifier = Modifier
@@ -279,7 +304,8 @@ fun ReaderScreen(
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад", tint = Color.White)
                         }
-                        Column(Modifier.weight(1f)) {
+                        // Тап по названию тайтла/главы — список глав для быстрого переключения, как на сайте.
+                        Column(Modifier.weight(1f).clickable { showChapters = true }) {
                             data.manga?.let {
                                 Text(it.title, color = Color.White, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
@@ -288,11 +314,13 @@ fun ReaderScreen(
                         if (errorCount > 0) androidx.compose.material3.TextButton(onClick = { showErrors = true }) {
                             Text("Ошибки ($errorCount)", color = Color(0xFFFF8A80))
                         }
+                        ReaderBookmarkButton(data.manga)
                         androidx.compose.material3.TextButton(onClick = {
                             showComments = true
                             report { AppGraph.repository.readerEvent(mangaId, data.chapter, "OPEN_COMMENTS") }
                         }) {
-                            Text("Комментарии", color = Color.White)
+                            Text("Комменты", color = Color.White)
+                            CommentCountChip(pageComments)
                         }
                     }
                 }
@@ -313,13 +341,41 @@ fun ReaderScreen(
                                 onClick = { data.previous?.let(onOpenChapter) },
                                 enabled = data.previous != null,
                             ) { Text("‹ Глава", color = if (data.previous != null) Color.White else Color(0xFF777777)) }
-                            Text(
-                                "${(dragging?.toInt() ?: current) + 1} / $total",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.weight(1f),
-                            )
+                            // Тап по счётчику страниц — список страниц с поиском по номеру, как на сайте.
+                            var pagesMenu by remember { mutableStateOf(false) }
+                            var pageQuery by remember { mutableStateOf("") }
+                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                Text(
+                                    "${(dragging?.toInt() ?: current) + 1} / $total",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                        .clickable { pageQuery = ""; pagesMenu = true }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = pagesMenu,
+                                    onDismissRequest = { pagesMenu = false },
+                                    modifier = Modifier.background(Color(0xFF16171D)).heightIn(max = 360.dp),
+                                ) {
+                                    androidx.compose.material3.OutlinedTextField(
+                                        value = pageQuery,
+                                        onValueChange = { pageQuery = it.filter(Char::isDigit).take(4) },
+                                        singleLine = true,
+                                        placeholder = { Text("№ стр.") },
+                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).width(170.dp),
+                                    )
+                                    (1..total).filter { pageQuery.isEmpty() || it.toString().contains(pageQuery) }.forEach { n ->
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = { Text("$n страница", color = Color.White, fontWeight = if (n == current + 1) FontWeight.Bold else FontWeight.Normal) },
+                                            onClick = { pagesMenu = false; scope.launch { listState.scrollToItem(n - 1) } },
+                                        )
+                                    }
+                                }
+                            }
                             androidx.compose.material3.TextButton(
                                 onClick = { data.next?.let(onOpenChapter) ?: onToTitle() },
                             ) { Text(if (data.next != null) "Глава ›" else "К тайтлу", color = Color.White) }
