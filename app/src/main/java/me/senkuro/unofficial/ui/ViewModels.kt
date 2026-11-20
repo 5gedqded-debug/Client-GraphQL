@@ -241,7 +241,7 @@ class CatalogViewModel : ViewModel() {
     }
 }
 
-class DetailsData(val details: MangaDetails, val chapters: ChaptersResult, val chaptersError: String?)
+class DetailsData(val details: MangaDetails, val chapters: ChaptersResult, val chaptersError: String?, val restricted: Boolean = false)
 
 class DetailsViewModel : ViewModel() {
     var state by mutableStateOf<UiState<DetailsData>>(UiState.Loading)
@@ -259,12 +259,16 @@ class DetailsViewModel : ViewModel() {
                     val repo = AppGraph.repository
                     val details = async { repo.details(mangaId) }
                     val chapters = async { runCatching { repo.chapters(mangaId, force = true) } }
+                    val d = details.await()
+                    val restricted = repo.chaptersRestricted(d.item.slug)
                     val result = chapters.await()
                     UiState.Ready(
                         DetailsData(
-                            details = details.await(),
-                            chapters = result.getOrElse { ChaptersResult(emptyList(), null) },
-                            chaptersError = result.exceptionOrNull()?.readable(),
+                            details = d,
+                            // Лицензия/блок региона: тайтл остаётся, вместо глав показывается заглушка
+                            chapters = if (restricted) ChaptersResult(emptyList(), null) else result.getOrElse { ChaptersResult(emptyList(), null) },
+                            chaptersError = if (restricted) null else result.exceptionOrNull()?.readable(),
+                            restricted = restricted,
                         ),
                     )
                 }

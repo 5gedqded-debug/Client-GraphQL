@@ -251,6 +251,16 @@ class SenkuroRepository(private val api: SenkuroApi) {
         return details
     }
 
+    /** Главы недоступны: тайтл лицензирован (isLicensed) или закрыт в регионе пользователя (viewerInBlockedCountry). */
+    suspend fun chaptersRestricted(slug: String): Boolean = try {
+        api.execute("fetchMangaLicense", "fetchMangaLicense", buildJsonObject { put("slug", slug) }, LicenseResponse.serializer())
+            .manga?.let { it.isLicensed || it.viewerInBlockedCountry } ?: false
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        false
+    }
+
     suspend fun chapters(mangaId: String, force: Boolean = false): ChaptersResult {
         if (!force) synchronized(chaptersCache) { chaptersCache[mangaId] }?.let { return it }
         val response = api.execute(

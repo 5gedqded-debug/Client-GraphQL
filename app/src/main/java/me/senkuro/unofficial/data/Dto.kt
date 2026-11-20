@@ -391,6 +391,12 @@ class BookmarkChapterDto(val id: String = "", val slug: String = "")
 class BookmarkChapterResponse(val mangaBookmarkChapter: BookmarkChapterDto? = null)
 
 @Serializable
+class LicenseResponse(val manga: LicenseManga? = null)
+
+@Serializable
+class LicenseManga(val isLicensed: Boolean = false, val viewerInBlockedCountry: Boolean = false)
+
+@Serializable
 class ViewerStateResponse(val manga: ViewerVoteManga? = null)
 
 @Serializable

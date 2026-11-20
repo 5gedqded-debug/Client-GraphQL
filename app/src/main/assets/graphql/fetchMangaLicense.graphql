@@ -1,0 +1,7 @@
+query fetchMangaLicense($slug: String!) {
+  manga(slug: $slug) {
+    id
+    isLicensed
+    viewerInBlockedCountry
+  }
+}
