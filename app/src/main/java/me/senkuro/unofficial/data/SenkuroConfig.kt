@@ -19,7 +19,7 @@ class Domain(
     val oauthRedirect: String get() = "$baseUrl/auth/oauth/callback"
 }
 
-/** Константы подключения к Senkuro (значения взяты из приложенных расширений). */
+/** Константы подключения к Senkuro (значения те же, что шлёт сайт). */
 object SenkuroConfig {
 
     /** Основной домен (API api.senkuro.me, вход через sso.senkuro.net). */
@@ -74,9 +74,6 @@ object SenkuroConfig {
     val appId: String get() = appIdOverride ?: APP_ID
     val appVersion: String get() = appVersionOverride ?: APP_VERSION
 
-    /** Размер страницы выдачи mangaTachiyomiSearch (offset-пагинация). */
-    const val SEARCH_PAGE_SIZE = 10
-
-    /** Размер страницы каталога «как на сайте» (запрос `mangas`, сортировка по датам). */
+    /** Размер страницы каталога (запрос `mangas`, как на сайте). */
     const val SITE_PAGE_SIZE = 20
 }

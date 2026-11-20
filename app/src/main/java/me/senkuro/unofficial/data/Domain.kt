@@ -27,6 +27,8 @@ data class MangaDetails(
     val labels: List<String>,
     val authors: String?,
     val artists: String?,
+    /** Главы недоступны: тайтл лицензирован (isLicensed) или закрыт в регионе пользователя (viewerInBlockedCountry). */
+    val restricted: Boolean = false,
 )
 
 data class Chapter(
@@ -52,7 +54,7 @@ data class Chapter(
 
 data class Branch(val id: String, val label: String, val chapters: List<Chapter>)
 
-data class ChaptersResult(val chapters: List<Chapter>, val message: String?) {
+data class ChaptersResult(val chapters: List<Chapter>) {
     /** Ветки переводов: самая заполненная — первой. Главы внутри ветки — по возрастанию. */
     val branches: List<Branch> by lazy {
         val comparator = compareBy<Chapter>({ it.volumeValue }, { it.numberValue })

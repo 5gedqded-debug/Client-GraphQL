@@ -1,0 +1,647 @@
+query fetchManga($slug: String!) {
+  manga(slug: $slug) {
+    id
+    applicationId
+    malId
+    muId
+    slug
+    originalName {
+      lang
+      content
+    }
+    titles {
+      lang
+      content
+    }
+    alternativeNames {
+      lang
+      content
+    }
+    localizations {
+      lang
+      description {
+        ...TiptapRootCommon
+      }
+    }
+    type
+    status
+    formats
+    source
+    translitionStatus
+    views
+    score
+    totalChaptersViews
+    originCountry
+    releasedOn
+    completedOn
+    rating
+    chapters
+    isLicensed
+    containExplicitThemes
+    commentsEnabled
+    links {
+      url
+      type
+      service
+    }
+    labels {
+      ...LabelCommon
+    }
+    series {
+      ...SeriesCommon
+    }
+    publishers {
+      ...StudioCommon
+    }
+    branches {
+      ...MangaBranchTeamListCard
+    }
+    mainCharacters {
+      ...CharacterCommon
+    }
+    mainStaff {
+      id
+      roles
+      person {
+        ...PersonCommon
+      }
+    }
+    cover {
+      ...MangaCoverCommon
+      main: resize(width: 483, height: 690) {
+        url
+      }
+    }
+    banner {
+      ...MangaBannerCommon
+    }
+    userBookmarkCollectionDistributions {
+      collectionId
+      count
+    }
+    scoreDistributions {
+      count
+      score
+    }
+    relations {
+      id
+      relation
+      destination {
+        ...MangaRelationCommon
+        __typename
+      }
+    }
+    recommendations {
+      ...MangaCardCommon
+    }
+    pinnedComment {
+      ...CommentCommon
+    }
+    viewerVote
+    viewerBookmark {
+      ...UserBookmarkCommon
+    }
+    viewerBookmarkFriends {
+      entityId
+      status
+      user {
+        ...UserCommon
+      }
+    }
+    viewerInBlockedCountry
+  }
+}
+
+fragment AnimeCoverCommon on Image {
+  id
+  blurhash
+  original {
+    height
+    width
+    url
+  }
+  preview: resize(width: 175, height: 250) {
+    url
+  }
+}
+
+fragment BranchActivityVolumeCommon on BranchActivityVolume {
+  volume
+  ranges {
+    start
+    end
+  }
+}
+
+fragment CharacterCommon on Character {
+  id
+  slug
+  name
+  titles {
+    lang
+    content
+  }
+  cover {
+    ...CharacterCoverCommon
+  }
+}
+
+fragment CharacterCoverCommon on Image {
+  id
+  blurhash
+  original {
+    url
+  }
+}
+
+fragment CommentCommon on Comment {
+  id
+  threadId
+  parentId
+  depth
+  content {
+    ...TiptapRootCommon
+  }
+  upvotes
+  downvotes
+  repliesCount
+  createdAt
+  updatedAt
+  deletedAt
+  viewerDidAuthor
+  viewerCanUpdate
+  viewerCanDelete
+  viewerVoteDirection
+  author {
+    ...UserCommon
+    banned
+    mainGuild {
+      guild {
+        id
+        slug
+        name
+        tag
+        level
+        color
+      }
+    }
+  }
+}
+
+fragment LabelCommon on Label {
+  id
+  slug
+  titles {
+    lang
+    content
+  }
+  alternativeNames {
+    lang
+    content
+  }
+  gender
+}
+
+fragment MangaBannerCommon on Image {
+  id
+  blurhash
+  original {
+    height
+    width
+    url
+  }
+}
+
+fragment MangaBranchCard on MangaBranch {
+  id
+  lang
+  chapters
+  translitionStatus
+  manageRestriction
+  primaryBranch
+  completed
+  primaryTeamActivities: volumePrimaryTeamActivities {
+    volumes {
+      ...BranchActivityVolumeCommon
+    }
+    team {
+      ...TeamCommon
+    }
+  }
+}
+
+fragment MangaBranchTeamListCard on MangaBranch {
+  ...MangaBranchCard
+  teamActivities: volumeTeamActivities {
+    volumes {
+      ...BranchActivityVolumeCommon
+    }
+    team {
+      ...TeamCommon
+    }
+  }
+  viewerCanTranslate
+  viewerCanManage
+  viewerCanUpload
+}
+
+fragment MangaCardCommon on Manga {
+  id
+  slug
+  originalName {
+    lang
+    content
+  }
+  titles {
+    lang
+    content
+  }
+  status
+  type
+  formats
+  rating
+  score
+  containExplicitThemes
+  cover {
+    ...MangaCoverCommon
+  }
+  viewerBookmark {
+    ...UserBookmarkCommon
+  }
+}
+
+fragment MangaCoverCommon on Image {
+  id
+  blurhash
+  original {
+    height
+    width
+    url
+  }
+  preview: resize(width: 175, height: 250) {
+    url
+  }
+}
+
+fragment MangaRelationCommon on MangaRelationDestination {
+  ... on Anime {
+    id
+    slug
+    originalName {
+      lang
+      content
+    }
+    titles {
+      lang
+      content
+    }
+    animeStatus: status
+    animeType: type
+    animeFormats: formats
+    animeRating: rating
+    cover {
+      ...AnimeCoverCommon
+    }
+    viewerBookmark {
+      ...UserBookmarkCommon
+    }
+  }
+  ... on Manga {
+    id
+    slug
+    originalName {
+      lang
+      content
+    }
+    titles {
+      lang
+      content
+    }
+    mangaStatus: status
+    mangaType: type
+    mangaFormats: formats
+    mangaRating: rating
+    cover {
+      ...MangaCoverCommon
+    }
+    viewerBookmark {
+      ...UserBookmarkCommon
+    }
+  }
+  __typename
+}
+
+fragment PersonCommon on Person {
+  id
+  slug
+  name
+  titles {
+    lang
+    content
+  }
+  cover {
+    ...PersonCoverCommon
+  }
+}
+
+fragment PersonCoverCommon on Image {
+  id
+  blurhash
+  original {
+    url
+  }
+}
+
+fragment SeriesCommon on Series {
+  id
+  slug
+  name
+}
+
+fragment StudioCommon on Studio {
+  id
+  slug
+  name
+  titles {
+    lang
+    content
+  }
+  logotype {
+    ...StudioLogotypeCommon
+  }
+}
+
+fragment StudioLogotypeCommon on Image {
+  id
+  blurhash
+  original {
+    url
+  }
+}
+
+fragment TeamAvatarCommon on Image {
+  id
+  blurhash
+  original {
+    url
+  }
+}
+
+fragment TeamCommon on Team {
+  id
+  slug
+  name
+  activity
+  verified
+  avatar {
+    ...TeamAvatarCommon
+  }
+}
+
+fragment TiptapBlockCommon on TiptapNodeUnion {
+  ... on TiptapNodeOnlyBlock {
+    type
+  }
+  ... on TiptapNodeText {
+    type
+    text
+    marks {
+      ...TiptapMarksCommon
+    }
+  }
+  ... on TiptapNodeEmoji {
+    type
+    attrs {
+      id
+      unicode
+      url
+    }
+  }
+  ... on TiptapNodeSticker {
+    type
+    attrs {
+      id
+      unicode
+      url
+    }
+  }
+  ... on TiptapNodeMention {
+    type
+    attrs {
+      id
+      label
+    }
+  }
+  ... on TiptapNodeYoutube {
+    type
+    attrs {
+      src
+      start
+      width
+      height
+    }
+  }
+  __typename
+}
+
+fragment TiptapMarksCommon on TiptapMarkUnion {
+  ... on TiptapMarkBasic {
+    type
+  }
+  ... on TiptapMarkLink {
+    type
+    attrs {
+      href
+    }
+  }
+  __typename
+}
+
+fragment TiptapNested1Common on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock {
+    type
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested2Common
+    }
+  }
+  ... on TiptapNodeOrderedList {
+    type
+    attrs {
+      start
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested2Common
+    }
+  }
+  ... on TiptapNodeCodeBlock {
+    type
+    attrs {
+      language
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested2Common
+    }
+  }
+  __typename
+}
+
+fragment TiptapNested2Common on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock {
+    type
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested3Common
+    }
+  }
+  ... on TiptapNodeOrderedList {
+    type
+    attrs {
+      start
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested3Common
+    }
+  }
+  ... on TiptapNodeCodeBlock {
+    type
+    attrs {
+      language
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested3Common
+    }
+  }
+  __typename
+}
+
+fragment TiptapNested3Common on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock {
+    type
+    content {
+      ...TiptapBlockCommon
+    }
+  }
+  ... on TiptapNodeOrderedList {
+    type
+    attrs {
+      start
+    }
+    content {
+      ...TiptapBlockCommon
+    }
+  }
+  ... on TiptapNodeCodeBlock {
+    type
+    attrs {
+      language
+    }
+    content {
+      ...TiptapBlockCommon
+    }
+  }
+  __typename
+}
+
+fragment TiptapRootCommon on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock {
+    type
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested1Common
+    }
+  }
+  ... on TiptapNodeHeading {
+    type
+    attrs {
+      level
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested1Common
+    }
+  }
+  ... on TiptapNodeOrderedList {
+    type
+    attrs {
+      start
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested1Common
+    }
+  }
+  ... on TiptapNodeCodeBlock {
+    type
+    attrs {
+      language
+    }
+    content {
+      ...TiptapBlockCommon
+      ...TiptapNested1Common
+    }
+  }
+  __typename
+}
+
+fragment UserAvatarCommon on Image {
+  id
+  animation
+  blurhash
+  original {
+    url
+  }
+}
+
+fragment UserBookmarkCommon on UserBookmark {
+  entityId
+  collectionId
+  page
+  number
+  __typename
+}
+
+fragment UserCommon on User {
+  id
+  slug
+  name
+  verified
+  bot
+  level
+  avatar {
+    ...UserAvatarCommon
+  }
+  frame {
+    ...UserFrameCommon
+  }
+  status {
+    ...UserStatusCommon
+  }
+}
+
+fragment UserFrameCommon on Image {
+  id
+  animation
+  blurhash
+  original {
+    url
+  }
+}
+
+fragment UserStatusCommon on Image {
+  id
+  animation
+  blurhash
+  caption
+  original {
+    url
+  }
+}

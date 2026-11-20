@@ -132,15 +132,27 @@ object AppGraph {
     /** Аккаунт на сайте (null — не вошли или ещё загружается). */
     val account: StateFlow<Account?> = _account.asStateFlow()
 
-    /** slug тайтла по id: запоминается при открытии из списка, нужен для проверки лицензии, если страница тайтла не загрузилась. */
+    /**
+     * slug тайтла по id. Сайт открывает тайтл по slug (`manga(slug)`), а приложение ходит по id, поэтому пара
+     * запоминается при открытии тайтла из любого списка и сохраняется на диск (переживает перезапуск приложения).
+     */
     private val slugById = java.util.concurrent.ConcurrentHashMap<String, String>()
-    fun rememberSlug(id: String, slug: String) { if (slug.isNotBlank()) slugById[id] = slug }
-    fun slugFor(id: String): String? = slugById[id]
+    private var slugPrefs: SharedPreferences? = null
+
+    fun rememberSlug(id: String, slug: String) {
+        if (slug.isBlank()) return
+        if (slugById.put(id, slug) != slug) slugPrefs?.edit()?.putString(id, slug)?.apply()
+    }
+
+    fun slugFor(id: String): String? =
+        slugById[id] ?: slugPrefs?.getString(id, null)?.also { slugById[id] = it }
+
     val accountError: StateFlow<String?> = _accountError.asStateFlow()
 
     fun init(app: Application) {
         Updater.init(app)
         settings = app.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+        slugPrefs = app.getSharedPreferences("manga_slugs", android.content.Context.MODE_PRIVATE)
         SenkuroConfig.current = SenkuroConfig.byId(settings.getString(KEY_DOMAIN, null))
         _domain.value = SenkuroConfig.current
         settings.getString("saved_catalog_filters", null)?.let { SavedFiltersCodec.decode(it) }?.let { _savedFilters.value = it }

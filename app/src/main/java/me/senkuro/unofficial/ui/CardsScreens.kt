@@ -154,7 +154,7 @@ fun CardScreen(slug: String, onBack: () -> Unit, onCharacter: (String) -> Unit, 
                     Text(c.description, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(top = 12.dp))
                 }
                 c.characterTitle?.let { t -> c.characterSlug?.let { s -> TextButton(onClick = { onCharacter(s) }) { Text("Персонаж: $t") } } }
-                c.entityTitle?.let { t -> if (c.entityIsManga && c.entityId != null) TextButton(onClick = { onManga(c.entityId) }) { Text("Тайтл: $t") } }
+                c.entityTitle?.let { t -> if (c.entityIsManga && c.entityId != null) TextButton(onClick = { c.entitySlug?.let { slug -> AppGraph.rememberSlug(c.entityId, slug) }; onManga(c.entityId) }) { Text("Тайтл: $t") } }
             }
         }
     }

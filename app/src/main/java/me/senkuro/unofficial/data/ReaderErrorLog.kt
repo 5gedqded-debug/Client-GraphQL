@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Журнал ошибок ридера (в памяти, до закрытия приложения): загрузка страниц, запросы, переключение на метод сайта. */
+/** Журнал ошибок ридера (в памяти, до закрытия приложения): загрузка страниц, запросы, переключение на сжатые картинки. */
 object ReaderErrorLog {
     val entries = mutableStateListOf<String>()
     private val fmt = SimpleDateFormat("HH:mm:ss", Locale.US)

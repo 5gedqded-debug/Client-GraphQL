@@ -85,6 +85,8 @@ data class CardDetails(
     val mine: String?,
     val id: String = "",
     val vote: Boolean? = null,
+    /** slug тайтла карточки: сайт открывает тайтл по slug. */
+    val entitySlug: String? = null,
 )
 
 data class CharacterProfile(val id: String, val name: String, val cover: String?, val gender: String?)
@@ -139,7 +141,7 @@ class CardsRepository(private val api: SenkuroApi) {
             c.owners, c.wishes, c.upvotes, c.views, c.createdAt?.take(10), c.description.plain(), c.author?.name,
             c.character?.titles.pick(), c.character?.slug?.takeIf { it.isNotBlank() },
             c.entity?.titles.pick(), c.entity?.id?.takeIf { it.isNotBlank() }, c.entity?.__typename == "Manga", mine,
-            id = c.id, vote = c.viewerVoteDirection,
+            id = c.id, vote = c.viewerVoteDirection, entitySlug = c.entity?.slug?.takeIf { it.isNotBlank() },
         )
     }
 

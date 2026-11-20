@@ -1,37 +1,32 @@
 # GraphQL-запросы
 
 Все запросы лежат в [`app/src/main/assets/graphql`](../app/src/main/assets/graphql) и загружаются по имени файла
-(`SenkuroApi.execute(operation, file, variables, serializer)`). Запросы вынесены из приложенных расширений Senkuro
-(Tachiyomi/Aidoku) и из JS сайта. Заголовки клиента и адреса доменов — в
+(`SenkuroApi.execute(operation, file, variables, serializer)`). Запросы взяты из JS сайта senkuro.me, имена операций
+и фрагменты совпадают с сайтовыми. Заголовки клиента и адреса доменов — в
 [`SenkuroConfig.kt`](../app/src/main/java/me/senkuro/unofficial/data/SenkuroConfig.kt).
 
 ## Описанные запросы
 
 | Файл | Назначение |
 | --- | --- |
-| `searchTachiyomiManga` | каталог и поиск (offset-пагинация, по 10); сортировки по популярности и по рейтингу |
-| `fetchCatalogMangas` | каталог «как на сайте» (запрос `mangas`, курсорная пагинация, по 20): сортировки по датам, главам и просмотрам, а также фильтры, которых нет в Tachiyomi (первоисточник, страна, диапазоны глав и года), и серверный «Статус закладок» |
+| `fetchMangas` | каталог и поиск, как на сайте (`mangas`, курсорная пагинация, по 20): сортировки, все фильтры, оценка тайтла в ответе, серверный «Статус закладок»; им же страницы персонажа, карточки и автора |
 | `fetchMangaFilters` | группы меток каталога (`allLabels`: корни «Основной каст», «Черты»…, популярные метки первыми) |
-| `fetchTachiyomiSearchFilters` | список меток для фильтров |
-| `fetchTachiyomiManga` | карточка тайтла |
-| `fetchTachiyomiChapters` | главы, ветки и команды |
-| `fetchTachiyomiChapterPages` | страницы главы |
-| `readerChapter` | запасной вариант получения страниц по slug главы |
+| `fetchManga` | страница тайтла (`manga(slug)`): названия, описание (Tiptap), метки, ветки и команды, лицензия и блок региона |
+| `fetchMangaChapters` | главы ветки (`mangaChapters`, по 100 с курсором); ветки берутся из `fetchManga` |
+| `fetchMangaChapter` | страницы главы по slug (`mangaChapter`, `cdnQuality: "auto"`; поля `original` и сжатая версия `compress`) |
 | `fetchViewer` | аккаунт и коллекции закладок |
 | `fetchViewerUnreadNotifications`, `fetchNotificationFeeds` | уведомления |
 | `bulkReadNotifications`, `bulkDeleteNotifications` | «Прочитать все», удаление уведомлений |
 | `fetchUser`, `fetchUserAchievements` | экран профиля (аватар в шапке) и достижения |
 | SSO `/api/v1/captcha-config`, `/api/v1/auth/login`, `/oauth/authorize`, `/oauth/token` | нативный вход: форма почта/пароль/2FA, капча в WebView, OAuth+PKCE делает приложение (хост SSO зависит от домена: `sso.senkuro.net` для senkuro.me, `sso.senkuro.org` для senkuro.com) |
-| `fetchMangaChapters` | добор глав, которых нет в tachiyomi-ответе |
 | `fetchThreadComments`, `createComment`, `updateComment`, `deleteComment` | комментарии к странице в ридере |
 | `fetchConversations`, `fetchConversationMessages`, `createConversationMessage`, `readConversationMessage`, `bulkDeleteConversationMessages` | личная переписка (Настройки → Сообщения) |
 | `fetchGuilds`, `fetchGuild`, `fetchGuildMembers` | гильдии (Настройки → Гильдии) |
 | `fetchUserCards` | мои карточки (Настройки → Мои карточки) |
 | `fetchCards`, `fetchCard`, `viewCard` | каталог карточек (Настройки → Каталог карточек), страница карточки |
-| `fetchCharacter`, `fetchMangas` | страница персонажа: тайтлы и карточки (нажатие на персонажа в тайтле или карточке) |
+| `fetchCharacter` | страница персонажа: тайтлы и карточки (нажатие на персонажа в тайтле или карточке) |
 | `fetchUserTasks` | задания (Настройки → Задания) |
 | `fetchLevelUsers` | страница уровней (шапка → «Ур.» своего аккаунта) |
-| `fetchMangaScores` (собирается в коде) | оценки для результатов поиска Tachiyomi (в `MangaTachiyomiSearch` нет поля `score`) |
 | `redeemRedemption` | промокод (Настройки → Мой аккаунт → Промокод) |
 | `fetchCardOffers`, `acceptCardOffer`, `closeCardOffer` | обмены карточек (Настройки → Обмены карточек) |
 | `fetchMainUserTops` | лента топов дня на главной |

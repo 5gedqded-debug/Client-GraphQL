@@ -41,9 +41,6 @@ class Person(val name: String = "")
 class Staff(val roles: List<String> = emptyList(), val person: Person = Person())
 
 @Serializable
-class Localization(val lang: String = "", val description: String? = null)
-
-@Serializable
 class MangaCardDto(
     val id: String? = null,
     val slug: String = "",
@@ -57,74 +54,57 @@ class MangaCardDto(
 )
 
 @Serializable
-class MangaInfoDto(
-    val id: String = "",
-    val slug: String = "",
-    val titles: List<Title>? = null,
-    val originalName: Title? = null,
-    val alternativeNames: List<Title>? = null,
-    val localizations: List<Localization>? = null,
-    val type: String? = null,
-    val status: String? = null,
-    val rating: String? = null,
-    val formats: List<String>? = null,
-    val labels: List<Label>? = null,
-    val translationStatus: String? = null,
-    val cover: Cover? = null,
-    val mainStaff: List<Staff>? = null,
-)
-
-@Serializable
 data class ChapterDto(
     val id: String = "",
     val slug: String = "",
     val branchId: String = "",
     val name: String? = null,
     val teamIds: List<String> = emptyList(),
-    val number: String = "",
-    val volume: String = "",
+    /** Сайт отдаёт номер и том числами (Float / Int). */
+    val number: kotlinx.serialization.json.JsonElement? = null,
+    val volume: kotlinx.serialization.json.JsonElement? = null,
     val createdAt: String? = null,
-    val updatedAt: String? = null,
+)
+
+// ---- Тайтл (запрос сайта fetchManga): нужные приложению поля ----
+
+@Serializable
+class SiteLocalizationDto(val lang: String = "", val description: kotlinx.serialization.json.JsonElement? = null)
+
+@Serializable
+class SiteTeamDto(val id: String = "", val name: String = "")
+
+@Serializable
+class SiteTeamActivityDto(val team: SiteTeamDto? = null)
+
+@Serializable
+class SiteBranchDto(val id: String = "", val teamActivities: List<SiteTeamActivityDto>? = null)
+
+@Serializable
+class SiteMangaDto(
+    val id: String = "",
+    val slug: String = "",
+    val titles: List<Title>? = null,
+    val originalName: Title? = null,
+    val alternativeNames: List<Title>? = null,
+    val localizations: List<SiteLocalizationDto>? = null,
+    val type: String? = null,
+    val status: String? = null,
+    val rating: String? = null,
+    val formats: List<String>? = null,
+    val labels: List<Label>? = null,
+    val translitionStatus: String? = null,
+    val cover: Cover? = null,
+    val mainStaff: List<Staff>? = null,
+    val branches: List<SiteBranchDto>? = null,
+    val isLicensed: Boolean? = null,
+    val viewerInBlockedCountry: Boolean? = null,
 )
 
 @Serializable
-class TeamDto(val id: String = "", val slug: String = "", val name: String = "")
-
-@Serializable
-class ChaptersDto(
-    val message: String? = null,
-    val chapters: List<ChapterDto> = emptyList(),
-    val teams: List<TeamDto> = emptyList(),
-)
-
-@Serializable
-class PageDto(val url: String = "")
-
-@Serializable
-class PagesDto(val pages: List<PageDto> = emptyList())
-
-@Serializable
-class FiltersDto(val labels: List<Label> = emptyList())
+class SiteMangaResponse(val manga: SiteMangaDto? = null)
 
 // ---- обёртки ответов (data) ----
-
-@Serializable
-class SearchResponse(val mangaTachiyomiSearch: SearchPageDto = SearchPageDto())
-
-@Serializable
-class SearchPageDto(val mangas: List<MangaCardDto> = emptyList())
-
-@Serializable
-class InfoResponse(val mangaTachiyomiInfo: MangaInfoDto? = null)
-
-@Serializable
-class ChaptersResponse(val mangaTachiyomiChapters: ChaptersDto = ChaptersDto())
-
-@Serializable
-class PagesResponse(val mangaTachiyomiChapterPages: PagesDto = PagesDto())
-
-@Serializable
-class FiltersResponse(val mangaTachiyomiSearchFilters: FiltersDto = FiltersDto())
 
 @Serializable
 class Edge(val node: MangaCardDto)
@@ -145,7 +125,7 @@ class RecommendationsResponse(val mangaRecommendations: List<MangaCardDto> = emp
 class ReaderImage(val url: String = "")
 
 @Serializable
-class ReaderImageSizes(val original: ReaderImage? = null)
+class ReaderImageSizes(val original: ReaderImage? = null, val compress: ReaderImage? = null)
 
 @Serializable
 class ReaderPageDto(val id: String = "", val image: ReaderImageSizes? = null)
@@ -390,11 +370,6 @@ class BookmarkChapterDto(val id: String = "", val slug: String = "")
 @Serializable
 class BookmarkChapterResponse(val mangaBookmarkChapter: BookmarkChapterDto? = null)
 
-@Serializable
-class LicenseResponse(val manga: LicenseManga? = null)
-
-@Serializable
-class LicenseManga(val isLicensed: Boolean = false, val viewerInBlockedCountry: Boolean = false)
 
 @Serializable
 class ViewerStateResponse(val manga: ViewerVoteManga? = null)
