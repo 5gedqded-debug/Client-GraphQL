@@ -142,7 +142,6 @@ class CatalogViewModel : ViewModel() {
 
     private var job: Job? = null
     private var requestId = 0
-    private var nextOffset = 0
     private var nextCursor: String? = null
 
     init {
@@ -189,7 +188,6 @@ class CatalogViewModel : ViewModel() {
         job = null
         requestId++
         items = emptyList()
-        nextOffset = 0
         nextCursor = null
         endReached = false
         error = null
@@ -203,33 +201,14 @@ class CatalogViewModel : ViewModel() {
         error = null
         job = viewModelScope.launch {
             try {
-                if (filters.usesSiteQuery) {
-                    // Сортировка по датам и фильтры, которых нет в Tachiyomi, — запросом сайта (курсорная постраничность, закладки фильтрует сервер).
-                    val ids = AppGraph.account.value?.collections.orEmpty().associate { it.name to it.id }
-                    val (page, next) = AppGraph.repository.searchSite(query, filters, ids, nextCursor)
-                    if (token != requestId) return@launch
-                    nextCursor = next
-                    if (next == null) endReached = true
-                    val known = items.mapTo(HashSet()) { it.id }
-                    items = items + page.filter { it.id !in known }
-                } else {
-                    // Фильтр по статусу закладок в Tachiyomi-поиске работает на клиенте, и страница может целиком
-                    // отсеяться: тогда догружаем следующие, пока что-то не появится (но не бесконечно).
-                    var added = 0
-                    var requests = 0
-                    do {
-                        val page = AppGraph.repository.search(query, filters, nextOffset)
-                        if (token != requestId) return@launch
-                        nextOffset += page.size
-                        if (page.size < SenkuroConfig.SEARCH_PAGE_SIZE) endReached = true
-                        val marks = AppGraph.marks.value
-                        val known = items.mapTo(HashSet()) { it.id }
-                        val fresh = page.filter { it.id !in known && filters.matchesBookmark(marks[it.id]) }
-                        items = items + fresh
-                        added += fresh.size
-                        requests++
-                    } while (added == 0 && !endReached && filters.hasBookmarkFilter && requests < 15)
-                }
+                // Запрос сайта `mangas`: курсорная постраничность, «Статус закладок» фильтрует сервер.
+                val ids = AppGraph.account.value?.collections.orEmpty().associate { it.name to it.id }
+                val (page, next) = AppGraph.repository.searchSite(query, filters, ids, nextCursor)
+                if (token != requestId) return@launch
+                nextCursor = next
+                if (next == null) endReached = true
+                val known = items.mapTo(HashSet()) { it.id }
+                items = items + page.filter { it.id !in known }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -249,29 +228,25 @@ class DetailsViewModel : ViewModel() {
 
     private var loadedId: String? = null
 
-    /** Тайтл не открылся целиком, и он лицензирован / закрыт в регионе: вместо страницы показывается заглушка. */
-    var blocked by mutableStateOf(false)
-        private set
-
     fun load(mangaId: String, force: Boolean = false) {
         if (!force && loadedId == mangaId) return
         loadedId = mangaId
-        blocked = false
         state = UiState.Loading
         viewModelScope.launch {
             state = try {
                 coroutineScope {
                     val repo = AppGraph.repository
-                    val details = async { repo.details(mangaId) }
+                    val details = async { repo.details(mangaId, force) }
                     val chapters = async { runCatching { repo.chapters(mangaId, force = true) } }
                     val d = details.await()
-                    val restricted = repo.chaptersRestricted(d.item.slug)
+                    // Лицензия/блок региона приходят в самом ответе тайтла (isLicensed, viewerInBlockedCountry).
+                    val restricted = d.restricted
                     val result = chapters.await()
                     UiState.Ready(
                         DetailsData(
                             details = d,
                             // Лицензия/блок региона: тайтл остаётся, вместо глав показывается заглушка
-                            chapters = if (restricted) ChaptersResult(emptyList(), null) else result.getOrElse { ChaptersResult(emptyList(), null) },
+                            chapters = if (restricted) ChaptersResult(emptyList()) else result.getOrElse { ChaptersResult(emptyList()) },
                             chaptersError = if (restricted) null else result.exceptionOrNull()?.readable(),
                             restricted = restricted,
                         ),
@@ -280,8 +255,6 @@ class DetailsViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                val slug = AppGraph.slugFor(mangaId)
-                blocked = slug != null && AppGraph.repository.chaptersRestricted(slug)
                 UiState.Error(e.readable())
             }
         }
@@ -315,7 +288,7 @@ class ReaderViewModel : ViewModel() {
                     ?: throw IllegalStateException("Глава не найдена")
                 val branch = chapters.branches.firstOrNull { it.id == chapter.branchId }?.chapters.orEmpty()
                 val index = branch.indexOfFirst { it.id == chapterId }
-                val pages = repo.pages(mangaId, chapter)
+                val pages = repo.pages(chapter)
                 val manga = runCatching { repo.details(mangaId).item }.getOrNull()
                 if (manga != null) AppGraph.library.recordRead(manga, chapter)
                 UiState.Ready(

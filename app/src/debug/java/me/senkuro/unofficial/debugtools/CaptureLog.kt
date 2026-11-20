@@ -74,7 +74,7 @@ object CaptureLog {
 
     /**
      * Операции сайта, функционал которых приложение уже реализовало своими запросами с другими именами
-     * (tachiyomi-запросы, Reader, home*): их тоже скрываем.
+     * (home* и т. п.): их тоже скрываем.
      */
     private val EQUIVALENTS = setOf(
         "fetchManga", "fetchMangaInReader", "fetchMangaRecommendations", "fetchMangaChapters", "fetchMangaChapter", "fetchMainPage", "fetchPopularMangaByPeriod",

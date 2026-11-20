@@ -183,7 +183,7 @@ fun SiteSearchScreen(
                         Modifier.fillMaxWidth().clickable {
                             saveQuery(query)
                             when (type) {
-                                "MANGA" -> onManga(h.id)
+                                "MANGA" -> { AppGraph.rememberSlug(h.id, h.slug); onManga(h.id) }
                                 "TEAM" -> onTeam(h.slug)
                                 "GUILD" -> onGuild(h.slug)
                                 "PERSON" -> onPerson(h.slug)

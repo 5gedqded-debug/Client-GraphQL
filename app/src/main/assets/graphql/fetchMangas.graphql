@@ -1,6 +1,59 @@
-query fetchMangas($first: Int = 20, $after: String, $character: MangaCharacterFilter, $staff: MangaStaffFilter) {
-  mangas(first: $first, after: $after, character: $character, staff: $staff, orderBy: {field: CREATED_AT, direction: DESC}) {
-    edges { node { id slug originalName { lang content } titles { lang content } status rating score cover { original { url } } } }
-    pageInfo { hasNextPage endCursor }
+query fetchMangas($first: Int = 20, $after: String, $search: String, $type: MangaTypeFilter, $format: MangaFormatFilter, $status: MangaStatusFilter, $source: MangaSourceFilter, $rating: MangaRatingFilter, $chapters: MangaChaptersFilter, $originCountry: MangaOriginCountryFilter, $releasedOn: MangaReleasedOnFilter, $completedOn: MangaCompletedOnFilter, $label: MangaLabelFilter, $character: MangaCharacterFilter, $staff: MangaStaffFilter, $publisher: MangaPublisherFilter, $bookmarkCollections: MangaBookmarkCollectionsFilter, $translitionStatus: MangaTranslitionStatusFilter, $orderField: MangaOrderField = CREATED_AT, $orderDirection: OrderDirection = DESC) {
+  mangas(first: $first, after: $after, orderBy: {field: $orderField, direction: $orderDirection}, search: $search, type: $type, format: $format, status: $status, source: $source, rating: $rating, chapters: $chapters, originCountry: $originCountry, releasedOn: $releasedOn, completedOn: $completedOn, label: $label, character: $character, staff: $staff, publisher: $publisher, bookmarkCollections: $bookmarkCollections, translitionStatus: $translitionStatus) {
+    edges {
+      node {
+        ...MangaCardCommon
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
   }
+}
+
+fragment MangaCardCommon on Manga {
+  id
+  slug
+  originalName {
+    lang
+    content
+  }
+  titles {
+    lang
+    content
+  }
+  status
+  type
+  formats
+  rating
+  score
+  containExplicitThemes
+  cover {
+    ...MangaCoverCommon
+  }
+  viewerBookmark {
+    ...UserBookmarkCommon
+  }
+}
+
+fragment MangaCoverCommon on Image {
+  id
+  blurhash
+  original {
+    height
+    width
+    url
+  }
+  preview: resize(width: 175, height: 250) {
+    url
+  }
+}
+
+fragment UserBookmarkCommon on UserBookmark {
+  entityId
+  collectionId
+  page
+  number
+  __typename
 }

@@ -224,7 +224,7 @@ fun ReaderScreen(
                             onError = { st ->
                                 if (st.result.throwable is OutOfMemoryError) siteTried = true
                                 me.senkuro.unofficial.data.ReaderErrorLog.add(
-                                    "Картинка: страница ${index + 1}" + if (siteTried) " (после переключения на метод сайта)" else "",
+                                    "Картинка: страница ${index + 1}" + if (siteTried) " (после переключения на сжатые картинки)" else "",
                                     url, st.result.throwable,
                                 )
                             },
@@ -237,17 +237,17 @@ fun ReaderScreen(
                                 ) { CircularProgressIndicator(color = Color.White) }
                             },
                             error = {
-                                // Страницы по умолчанию не загрузились — один раз переключаемся на метод сайта.
+                                // Оригиналы не загрузились — один раз переключаемся на сжатые картинки сайта (`compress`).
                                 LaunchedEffect(data.chapter.id) {
                                     if (!siteTried) {
                                         siteTried = true
-                                        me.senkuro.unofficial.data.ReaderErrorLog.add("Переключение на метод сайта", "глава ${data.chapter.slug}")
+                                        me.senkuro.unofficial.data.ReaderErrorLog.add("Переключение на сжатые картинки", "глава ${data.chapter.slug}")
                                         try {
-                                            val alt = AppGraph.repository.sitePages(data.chapter)
+                                            val alt = AppGraph.repository.pages(data.chapter, compressed = true)
                                             if (alt.isNotEmpty() && alt != urls) urls = alt
-                                            else me.senkuro.unofficial.data.ReaderErrorLog.add("Метод сайта", "новых адресов нет (${alt.size} шт.)")
+                                            else me.senkuro.unofficial.data.ReaderErrorLog.add("Сжатые картинки", "новых адресов нет (${alt.size} шт.)")
                                         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) {
-                                            me.senkuro.unofficial.data.ReaderErrorLog.add("Метод сайта", "запрос не удался", e)
+                                            me.senkuro.unofficial.data.ReaderErrorLog.add("Сжатые картинки", "запрос не удался", e)
                                         }
                                     }
                                 }

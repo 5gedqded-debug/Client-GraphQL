@@ -103,4 +103,4 @@ private val bookmarkOutline: androidx.compose.ui.graphics.vector.ImageVector by 
     }.build()
 }
 
-private fun bookmarkIcon(filled: Boolean) = if (filled) bookmarkFilled else bookmarkOutline
+internal fun bookmarkIcon(filled: Boolean) = if (filled) bookmarkFilled else bookmarkOutline

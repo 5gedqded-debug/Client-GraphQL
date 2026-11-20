@@ -1,0 +1,43 @@
+query fetchMangaChapter($slug: String!, $cdnQuality: String) {
+  mangaChapter(slug: $slug) {
+    ...MangaChapterReader
+    pages(cdnQuality: $cdnQuality) {
+      ...MangaChapterPageCommon
+    }
+  }
+}
+
+fragment MangaChapterPageCommon on MangaChapterPage {
+  id
+  number
+  comments
+  image {
+    ...MangaChapterPageImage
+  }
+}
+
+fragment MangaChapterPageImage on Image {
+  id
+  original {
+    height
+    width
+    url
+  }
+  compress: resize(width: 700, quality: 75, format: WEBP) {
+    height
+    width
+    url
+  }
+}
+
+fragment MangaChapterReader on MangaChapter {
+  id
+  branchId
+  teamIds
+  slug
+  prevSlug
+  nextSlug
+  name
+  number
+  volume
+}

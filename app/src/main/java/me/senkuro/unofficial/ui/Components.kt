@@ -44,6 +44,8 @@ fun MangaCard(
     modifier: Modifier = Modifier,
     label: String? = me.senkuro.unofficial.data.AppGraph.marks.collectAsState().value[item.id],
     compact: Boolean = false,
+    /** Если задан — в правом верхнем углу обложки показывается кнопка закладки (заполнена, если тайтл уже в закладках). */
+    onBookmark: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -78,6 +80,25 @@ fun MangaCard(
                         .background(androidx.compose.ui.graphics.Color(0xB3000000), RoundedCornerShape(3.dp))
                         .padding(horizontal = 4.dp, vertical = 1.dp),
                 )
+            }
+            if (onBookmark != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(28.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(androidx.compose.ui.graphics.Color(0xB3000000))
+                        .clickable(onClick = onBookmark),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        bookmarkIcon(label != null),
+                        contentDescription = if (label != null) "В закладках" else "Добавить в закладки",
+                        tint = if (label != null) AppColors.Accent else androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
             if (label != null) {
                 Text(

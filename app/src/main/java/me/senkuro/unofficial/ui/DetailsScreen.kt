@@ -110,22 +110,7 @@ fun DetailsScreen(
     ) {
         when (val state = vm.state) {
             is UiState.Loading -> LoadingBox()
-            is UiState.Error -> if (vm.blocked) {
-                Column(
-                    Modifier.fillMaxSize().padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text("🛸", fontSize = 48.sp)
-                    Text(
-                        "К сожалению, лиса не может доставить запрошенный вами контент через портал, т.к. его похитили инопланетяне.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 15.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
-                }
-            } else ErrorBox(state.message, { vm.load(mangaId, force = true) })
+            is UiState.Error -> ErrorBox(state.message, { vm.load(mangaId, force = true) })
             is UiState.Ready -> DetailsContent(state.data, readIds, onRead, onReadAt, onOpenManga, onOpenCharacter, onOpenPerson, onOpenCard, onOpenLabel)
         }
         var bookmarkDialog by remember { mutableStateOf(false) }
@@ -448,9 +433,6 @@ private fun DetailsContent(data: DetailsData, readIds: Set<String>, onRead: (Cha
                 )
                 if (chapterQuery.isNotBlank() && chaptersDescending.isEmpty()) {
                     Text("Ничего не найдено", color = AppColors.DarkSecondary, fontSize = 12.sp)
-                }
-                data.chapters.message?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, color = AppColors.DarkSecondary, fontSize = 12.sp)
                 }
                 data.chaptersError?.let {
                     Text("Не удалось загрузить главы: $it", color = AppColors.DarkSecondary, fontSize = 12.sp)
