@@ -145,7 +145,7 @@ fun AppRoot() {
         }
     }
 
-    CompositionLocalProvider(LocalBottomInset provides 0.dp) {
+    CompositionLocalProvider(LocalBottomInset provides 0.dp, LocalOnLogin provides { nav.navigate(Routes.LOGIN) }) {
         Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0)) { padding ->
             Column(
                 Modifier

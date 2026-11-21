@@ -21,6 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +38,9 @@ import me.senkuro.unofficial.data.MangaItem
 /** Дополнительный отступ снизу (панель навигации теперь занимает своё место, поэтому 0). */
 val LocalBottomInset = compositionLocalOf<Dp> { 0.dp }
 
+/** Переход на экран входа: нужен кнопке закладки на постере, когда пользователь не авторизован. */
+val LocalOnLogin = compositionLocalOf<() -> Unit> { {} }
+
 /** Постер 2:3 со скруглением 4 и подписями слева под ним: название 13sp и статус серым 11sp (как в ките). */
 @Composable
 fun MangaCard(
@@ -44,9 +49,11 @@ fun MangaCard(
     modifier: Modifier = Modifier,
     label: String? = me.senkuro.unofficial.data.AppGraph.marks.collectAsState().value[item.id],
     compact: Boolean = false,
-    /** Если задан — в правом верхнем углу обложки показывается кнопка закладки (заполнена, если тайтл уже в закладках). */
-    onBookmark: (() -> Unit)? = null,
+    /** Кнопка закладки в правом верхнем углу обложки (заполнена, если тайтл уже в закладках). */
+    showBookmark: Boolean = true,
 ) {
+    var bookmarkDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    if (bookmarkDialog) BookmarkDialog(mangaId = item.id, onLogin = LocalOnLogin.current, onDismiss = { bookmarkDialog = false })
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
@@ -81,7 +88,7 @@ fun MangaCard(
                         .padding(horizontal = 4.dp, vertical = 1.dp),
                 )
             }
-            if (onBookmark != null) {
+            if (showBookmark) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -89,7 +96,7 @@ fun MangaCard(
                         .size(28.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
                         .background(androidx.compose.ui.graphics.Color(0xB3000000))
-                        .clickable(onClick = onBookmark),
+                        .clickable { bookmarkDialog = true },
                     contentAlignment = Alignment.Center,
                 ) {
                     androidx.compose.material3.Icon(

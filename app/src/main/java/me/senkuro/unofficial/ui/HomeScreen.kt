@@ -73,10 +73,6 @@ fun HomeScreen(
             is UiState.Error -> ErrorBox(state.message, vm::load)
             is UiState.Ready -> {
                 val account by AppGraph.account.collectAsState()
-                // Тайтл, для которого открыт выбор закладки (кнопка в углу обложки)
-                var bookmarkFor by remember { mutableStateOf<String?>(null) }
-                bookmarkFor?.let { id -> BookmarkDialog(mangaId = id, onLogin = onLogin, onDismiss = { bookmarkFor = null }) }
-                val onBookmark: (MangaItem) -> Unit = { bookmarkFor = it.id }
                 var resume by remember { mutableStateOf<List<MangaItem>>(emptyList()) }
                 LaunchedEffect(account?.userId) {
                     resume = if (account == null) emptyList() else try {
@@ -94,7 +90,7 @@ fun HomeScreen(
                 ) {
                     val data = state.data
                     item(key = "tops") { TopsSection(vm, onTasks, onUser) }
-                    cardsSection("Продолжить чтение", resume, onManga, onMore, showMore = false, onBookmark = onBookmark)
+                    cardsSection("Продолжить чтение", resume, onManga, onMore, showMore = false)
                     trendingSection(
                         "Самое читаемое",
                         if (vm.popularPeriod == "DAY") data.popular else vm.popularOther.orEmpty(),
@@ -102,9 +98,9 @@ fun HomeScreen(
                         header = { PeriodTabs(vm.popularPeriod, vm.popularLoading, vm::selectPopularPeriod) },
                     )
                     item(key = "ad") { AdStrip() }
-                    cardsSection("Новые тайтлы", data.newTitles, onManga, onMore, onBookmark = onBookmark)
+                    cardsSection("Новые тайтлы", data.newTitles, onManga, onMore)
                     newChaptersSection("Новые главы", data.latest.take(10), onManga, onMore)
-                    cardsSection("Рекомендации", data.recommendations, onManga, onMore, onBookmark = onBookmark)
+                    cardsSection("Рекомендации", data.recommendations, onManga, onMore)
                 }
             }
         }
@@ -298,7 +294,6 @@ private fun LazyListScope.cardsSection(
     onManga: (MangaItem) -> Unit,
     onMore: () -> Unit,
     showMore: Boolean = true,
-    onBookmark: ((MangaItem) -> Unit)? = null,
 ) {
     if (list.isEmpty()) return
     item(key = "section-$title") {
@@ -309,12 +304,7 @@ private fun LazyListScope.cardsSection(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(list, key = { it.id }) { manga ->
-                    MangaCard(
-                        manga,
-                        onClick = { onManga(manga) },
-                        modifier = Modifier.width(120.dp),
-                        onBookmark = onBookmark?.let { cb -> { cb(manga) } },
-                    )
+                    MangaCard(manga, onClick = { onManga(manga) }, modifier = Modifier.width(120.dp))
                 }
             }
         }
