@@ -82,11 +82,25 @@ class SenkuroRepository(private val api: SenkuroApi) {
             put("orderField", filters.orderField)
             put("orderDirection", if (filters.ascending) "ASC" else "DESC")
         }
-        val connection = api.execute(
-            "fetchMangas", "fetchMangas", variables, CMangasResponse.serializer(),
-        ).mangas
+        val text = query?.trim().orEmpty()
+        // Без фильтров текстовый поиск можно подстраховать глобальным поиском сайта (`search`, тип MANGA).
+        val canFallback = text.isNotEmpty() && after == null && filters.activeCount == 0
+        val connection = try {
+            api.execute("fetchMangas", "fetchMangas", variables, CMangasResponse.serializer()).mangas
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (canFallback) return globalSearch(text) else throw e
+        }
         val items = connection.edges.mapNotNull { it.node.toItem() }
+        if (items.isEmpty() && canFallback) return globalSearch(text)
         return items to connection.pageInfo.endCursor.takeIf { connection.pageInfo.hasNextPage }
+    }
+
+    /** Запасной текстовый поиск тайтлов: тот же запрос `search`, что и в строке поиска сайта. Одна страница. */
+    private suspend fun globalSearch(text: String): Pair<List<MangaItem>, String?> {
+        val hits = AppGraph.directory.search(text, "MANGA")
+        return hits.filter { it.kind.equals("Manga", true) }.map { MangaItem(id = it.id, slug = it.slug, title = it.title, cover = it.image) } to null
     }
 
     /** Все метки одним списком (в порядке групп и API). */
