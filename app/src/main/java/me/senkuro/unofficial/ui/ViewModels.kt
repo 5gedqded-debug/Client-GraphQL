@@ -228,9 +228,14 @@ class DetailsViewModel : ViewModel() {
 
     private var loadedId: String? = null
 
+    /** Сайт не отдаёт тайтл (удалён/скрыт): вместо ошибки показывается заглушка. */
+    var unavailable by mutableStateOf(false)
+        private set
+
     fun load(mangaId: String, force: Boolean = false) {
         if (!force && loadedId == mangaId) return
         loadedId = mangaId
+        unavailable = false
         state = UiState.Loading
         viewModelScope.launch {
             state = try {
@@ -255,6 +260,7 @@ class DetailsViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                unavailable = e is me.senkuro.unofficial.data.TitleUnavailableException
                 UiState.Error(e.readable())
             }
         }
@@ -275,10 +281,15 @@ class ReaderViewModel : ViewModel() {
 
     private var loadedKey: String? = null
 
+    /** Тайтл удалён/скрыт на сайте: вместо ошибки показывается заглушка. */
+    var unavailable by mutableStateOf(false)
+        private set
+
     fun load(mangaId: String, chapterId: String, force: Boolean = false) {
         val key = "$mangaId/$chapterId"
         if (!force && loadedKey == key) return
         loadedKey = key
+        unavailable = false
         state = UiState.Loading
         viewModelScope.launch {
             state = try {
@@ -303,6 +314,7 @@ class ReaderViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                unavailable = e is me.senkuro.unofficial.data.TitleUnavailableException
                 me.senkuro.unofficial.data.ReaderErrorLog.add("Загрузка главы", "manga=$mangaId chapter=$chapterId", e)
                 UiState.Error(e.readable())
             }

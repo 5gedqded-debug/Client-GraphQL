@@ -89,7 +89,7 @@ fun ReaderScreen(
                 CircularProgressIndicator(color = Color.White)
             }
 
-            is UiState.Error -> Column(
+            is UiState.Error -> if (vm.unavailable) AlienPlaceholder(color = Color.White) else Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(24.dp),

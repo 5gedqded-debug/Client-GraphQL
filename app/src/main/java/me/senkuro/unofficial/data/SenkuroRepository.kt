@@ -207,7 +207,7 @@ class SenkuroRepository(private val api: SenkuroApi) {
         val slug = AppGraph.slugFor(mangaId) ?: throw ApiException("Тайтл не найден")
         val dto = api.execute(
             "fetchManga", "fetchManga", buildJsonObject { put("slug", slug) }, SiteMangaResponse.serializer(),
-        ).manga ?: throw ApiException("Тайтл не найден")
+        ).manga ?: throw TitleUnavailableException()
         synchronized(mangaCache) { mangaCache[mangaId] = dto }
         dto
     }

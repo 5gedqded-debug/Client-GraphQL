@@ -23,6 +23,9 @@ import java.util.concurrent.TimeUnit
 
 class ApiException(message: String) : Exception(message)
 
+/** Сайт ответил, что тайтла нет (manga = null): удалён или скрыт. Экраны показывают заглушку про инопланетян. */
+class TitleUnavailableException : Exception("Тайтл не найден")
+
 /** Добавляет заголовки клиента ко всем запросам (API и картинки). */
 private class HeadersInterceptor(private val token: () -> String?) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {

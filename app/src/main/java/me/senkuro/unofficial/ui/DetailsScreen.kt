@@ -110,7 +110,7 @@ fun DetailsScreen(
     ) {
         when (val state = vm.state) {
             is UiState.Loading -> LoadingBox()
-            is UiState.Error -> ErrorBox(state.message, { vm.load(mangaId, force = true) })
+            is UiState.Error -> if (vm.unavailable) AlienPlaceholder() else ErrorBox(state.message, { vm.load(mangaId, force = true) })
             is UiState.Ready -> DetailsContent(state.data, readIds, onRead, onReadAt, onOpenManga, onOpenCharacter, onOpenPerson, onOpenCard, onOpenLabel)
         }
         var bookmarkDialog by remember { mutableStateOf(false) }

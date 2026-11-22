@@ -191,6 +191,25 @@ fun LoadingBox(modifier: Modifier = Modifier) {
     }
 }
 
+/** Заглушка для удалённого/скрытого тайтла. */
+@Composable
+fun AlienPlaceholder(modifier: Modifier = Modifier, color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Column(
+        modifier = modifier.fillMaxSize().padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("🛸", fontSize = 48.sp)
+        Text(
+            "К сожалению, лиса не может доставить запрошенный вами контент через портал, т.к. его похитили инопланетяне.",
+            color = color,
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}
+
 @Composable
 fun ErrorBox(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Column(
