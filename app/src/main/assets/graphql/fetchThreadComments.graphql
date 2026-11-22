@@ -14,15 +14,7 @@ fragment CommentBase on Comment {
   threadId
   parentId
   depth
-  content {
-    __typename
-    ... on TiptapNodeNestedBlock {
-      content {
-        __typename
-        ... on TiptapNodeText { text }
-      }
-    }
-  }
+  content { ...TiptapRootCommon }
   upvotes
   downvotes
   viewerVoteDirection
@@ -39,4 +31,44 @@ fragment CommentBase on Comment {
     frame { original { url } }
     status { caption original { url } }
   }
+}
+
+fragment TiptapMarksCommon on TiptapMarkUnion {
+  __typename
+  ... on TiptapMarkBasic { type }
+  ... on TiptapMarkLink { type attrs { href } }
+}
+fragment TiptapBlockCommon on TiptapNodeUnion {
+  __typename
+  ... on TiptapNodeOnlyBlock { type }
+  ... on TiptapNodeText { type text marks { ...TiptapMarksCommon } }
+  ... on TiptapNodeEmoji { type attrs { id unicode url } }
+  ... on TiptapNodeSticker { type attrs { id unicode url } }
+  ... on TiptapNodeMention { type attrs { id label } }
+  ... on TiptapNodeYoutube { type attrs { src start width height } }
+}
+fragment TiptapNested3Common on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock { type content { ...TiptapBlockCommon } }
+  ... on TiptapNodeOrderedList { type attrs { start } content { ...TiptapBlockCommon } }
+  ... on TiptapNodeCodeBlock { type attrs { language } content { ...TiptapBlockCommon } }
+}
+fragment TiptapNested2Common on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock { type content { ...TiptapBlockCommon ...TiptapNested3Common } }
+  ... on TiptapNodeOrderedList { type attrs { start } content { ...TiptapBlockCommon ...TiptapNested3Common } }
+  ... on TiptapNodeCodeBlock { type attrs { language } content { ...TiptapBlockCommon ...TiptapNested3Common } }
+}
+fragment TiptapNested1Common on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock { type content { ...TiptapBlockCommon ...TiptapNested2Common } }
+  ... on TiptapNodeOrderedList { type attrs { start } content { ...TiptapBlockCommon ...TiptapNested2Common } }
+  ... on TiptapNodeCodeBlock { type attrs { language } content { ...TiptapBlockCommon ...TiptapNested2Common } }
+}
+fragment TiptapRootCommon on TiptapNodeUnion {
+  ...TiptapBlockCommon
+  ... on TiptapNodeNestedBlock { type content { ...TiptapBlockCommon ...TiptapNested1Common } }
+  ... on TiptapNodeHeading { type attrs { level } content { ...TiptapBlockCommon ...TiptapNested1Common } }
+  ... on TiptapNodeOrderedList { type attrs { start } content { ...TiptapBlockCommon ...TiptapNested1Common } }
+  ... on TiptapNodeCodeBlock { type attrs { language } content { ...TiptapBlockCommon ...TiptapNested1Common } }
 }

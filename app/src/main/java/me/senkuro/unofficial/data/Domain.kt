@@ -172,6 +172,8 @@ data class CommentItem(
     val author: String,
     val avatar: String?,
     val text: String,
+    /** Содержимое как на сайте: форматирование, эмодзи, стикеры, цитаты, списки. */
+    val rich: List<RichNode> = emptyList(),
     val date: String?,
     /** Полная дата создания (ISO) — для сортировки. */
     val createdAt: String? = null,
@@ -189,6 +191,14 @@ data class CommentItem(
 )
 
 data class CommentsPage(val items: List<CommentItem>, val next: String?)
+
+data class EmojiItem(val id: String, val slug: String, val unicode: String?, val url: String)
+
+data class EmojiSetItem(val id: String, val title: String, val emojis: List<EmojiItem>)
+
+data class StickerItem(val id: String, val name: String?, val url: String)
+
+data class StickerSetItem(val id: String, val title: String, val stickers: List<StickerItem>)
 
 data class RelatedManga(val manga: MangaItem, val relation: String?)
 

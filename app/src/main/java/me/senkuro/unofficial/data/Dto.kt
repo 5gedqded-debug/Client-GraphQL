@@ -324,6 +324,61 @@ class TiptapChildDto(val text: String? = null)
 @Serializable
 class TiptapBlockDto(val content: List<TiptapChildDto>? = null)
 
+/** Узел текста комментария (Tiptap) в том виде, как его отдаёт сайт: рекурсивная структура. */
+@Serializable
+class RichDto(
+    @kotlinx.serialization.SerialName("__typename") val typename: String? = null,
+    val type: String? = null,
+    val text: String? = null,
+    val marks: List<RichMarkDto>? = null,
+    val attrs: RichAttrsDto? = null,
+    val content: List<RichDto>? = null,
+)
+
+@Serializable
+class RichMarkDto(
+    @kotlinx.serialization.SerialName("__typename") val typename: String? = null,
+    val type: String? = null,
+    val attrs: RichAttrsDto? = null,
+)
+
+@Serializable
+class RichAttrsDto(
+    val href: String? = null,
+    val id: String? = null,
+    val unicode: String? = null,
+    val url: String? = null,
+    val label: String? = null,
+    val src: String? = null,
+    val start: Double? = null,
+    val level: Int? = null,
+    val language: String? = null,
+)
+
+@Serializable
+class EmojiImageDto(val original: ImageSize? = null)
+
+@Serializable
+class SetTitleDto(val lang: String = "", val content: String = "")
+
+@Serializable
+class EmojiDto(val id: String = "", val slug: String? = null, val unicode: String? = null, val position: Int? = null, val image: EmojiImageDto? = null)
+
+@Serializable
+class EmojiSetDto(val id: String = "", val titles: List<SetTitleDto> = emptyList(), val emojis: List<EmojiDto> = emptyList())
+
+@Serializable
+class EmojiSetsResponse(val userEmojiSets: List<EmojiSetDto> = emptyList())
+
+@Serializable
+class StickerDto(val id: String = "", val name: String? = null, val unicode: String? = null, val position: Int? = null, val image: EmojiImageDto? = null)
+
+@Serializable
+class StickerSetDto(val id: String = "", val titles: List<SetTitleDto> = emptyList(), val stickers: List<StickerDto> = emptyList())
+
+@Serializable
+class StickerSetsResponse(val userStickerSets: List<StickerSetDto> = emptyList())
+
 @Serializable
 class CommentStatusDto(val caption: String? = null, val original: ImageSize? = null)
 
@@ -336,7 +391,7 @@ class CommentDto(
     val threadId: String? = null,
     val parentId: String? = null,
     val depth: Int? = null,
-    val content: List<TiptapBlockDto>? = null,
+    val content: List<RichDto>? = null,
     val upvotes: Int? = null,
     val downvotes: Int? = null,
     val viewerVoteDirection: Boolean? = null,

@@ -342,6 +342,18 @@ class TitleComments(private val subjectId: String, private val scope: CoroutineS
         run { AppGraph.repository.deleteComment(c.id, c.threadId); items.removeAll { it.id == c.id } }
     }
 
+    /** Стикер уходит отдельным комментарием (как на сайте). */
+    fun sendSticker(st: me.senkuro.unofficial.data.StickerItem) {
+        if (busy) return
+        busy = true
+        run {
+            AppGraph.repository.addStickerComment(replyTo?.id ?: subjectId, st)
+            editing = null; replyTo = null
+            loading = false
+            load(true)
+        }
+    }
+
     fun send() {
         val text = input.trim()
         if (text.isEmpty() || busy) return
@@ -359,9 +371,10 @@ class TitleComments(private val subjectId: String, private val scope: CoroutineS
 @Composable
 private fun CommentForm(state: TitleComments) {
     Column {
-        OutlinedTextField(
-            value = state.input, onValueChange = { state.input = it }, modifier = Modifier.fillMaxWidth(),
-            label = { Text(if (state.editing != null) "Правка комментария" else state.replyTo?.let { "Ответ: ${it.author}" } ?: "Новый комментарий") },
+        CommentComposer(
+            input = state.input, onInput = { state.input = it },
+            label = if (state.editing != null) "Правка комментария" else state.replyTo?.let { "Ответ: ${it.author}" } ?: "Новый комментарий",
+            onSticker = if (state.editing != null) null else ({ st: me.senkuro.unofficial.data.StickerItem -> state.sendSticker(st) }),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (state.editing != null || state.replyTo != null) TextButton(onClick = { state.editing = null; state.replyTo = null; state.input = "" }) { Text("Отмена") }
@@ -400,7 +413,7 @@ fun LazyListScope.commentsItems(state: TitleComments, loggedIn: Boolean, enabled
     val sortedItems = sortComments(state.items.toList(), state.sort)
     itemsIndexed(sortedItems, key = { _, it -> "c-" + it.id }) { index, c ->
         Column(Modifier.padding(horizontal = 21.dp)) {
-            CommentRow(c, threadGap = index > 0, afterReplies = index > 0 && sortedItems[index - 1].depth > 0, onVote = { state.vote(c, it) }, onEdit = { state.editing = c; state.replyTo = null; state.input = c.text }, onDelete = { state.delete(c) },
+            CommentRow(c, threadGap = index > 0, afterReplies = index > 0 && sortedItems[index - 1].depth > 0, onVote = { state.vote(c, it) }, onEdit = { state.editing = c; state.replyTo = null; state.input = me.senkuro.unofficial.data.richToMarkup(c.rich).ifBlank { c.text } }, onDelete = { state.delete(c) },
                 onReply = if (loggedIn) ({ state.replyTo = c; state.editing = null; state.input = "" }) else null)
             if (loggedIn && (state.replyTo?.id == c.id || state.editing?.id == c.id)) {
                 Column(Modifier.padding(start = ((c.depth + 1).coerceAtMost(3) * 18).dp, bottom = 8.dp)) { CommentForm(state) }

@@ -1,0 +1,7 @@
+query fetchUserEmojiSets {
+  userEmojiSets {
+    id
+    titles { lang content }
+    emojis { id slug unicode position image { id animation original { url } } }
+  }
+}

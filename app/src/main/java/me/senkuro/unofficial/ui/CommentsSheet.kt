@@ -162,7 +162,7 @@ fun CommentsSheet(chapterSlug: String, pageIndex: Int, onDismiss: () -> Unit) {
                                 }
                             }
                         },
-                        onEdit = { editing = c; replyTo = null; input = c.text },
+                        onEdit = { editing = c; replyTo = null; input = me.senkuro.unofficial.data.richToMarkup(c.rich).ifBlank { c.text } },
                         onReply = if (token != null) ({ replyTo = c; editing = null }) else null,
                         onDelete = {
                             if (!busy) {
@@ -182,11 +182,21 @@ fun CommentsSheet(chapterSlug: String, pageIndex: Int, onDismiss: () -> Unit) {
             if (token == null) {
                 Text("Войдите в аккаунт, чтобы писать комментарии.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             } else {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    label = { Text(if (editing != null) "Правка комментария" else replyTo?.let { "Ответ: ${it.author}" } ?: "Новый комментарий") },
-                    modifier = Modifier.fillMaxWidth(),
+                CommentComposer(
+                    input = input,
+                    onInput = { input = it },
+                    label = if (editing != null) "Правка комментария" else replyTo?.let { "Ответ: ${it.author}" } ?: "Новый комментарий",
+                    onSticker = if (editing != null) null else ({ st: me.senkuro.unofficial.data.StickerItem ->
+                        val sid = replyTo?.id ?: subject
+                        if (sid != null && !busy) {
+                            busy = true
+                            guarded {
+                                AppGraph.repository.addStickerComment(sid, st)
+                                replyTo = null
+                                load(true)
+                            }
+                        }
+                    }),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (editing != null || replyTo != null) TextButton(onClick = { editing = null; replyTo = null; input = "" }) { Text("Отмена") }
@@ -290,7 +300,8 @@ internal fun CommentRow(c: CommentItem, onVote: (Boolean) -> Unit, onEdit: () ->
             if (c.status != null) coil3.compose.AsyncImage(c.status, c.statusCaption, modifier = Modifier.size(18.dp))
             c.date?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
         }
-        Text(c.text.ifBlank { "…" }, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+        if (c.rich.isNotEmpty()) RichContent(c.rich, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+        else Text(c.text.ifBlank { "…" }, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = { onVote(true) }) {
                 val tint = if (c.vote == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant

@@ -1,0 +1,7 @@
+query fetchUserStickerSets {
+  userStickerSets {
+    id
+    titles { lang content }
+    stickers { id name unicode position image { id animation original { url } } }
+  }
+}

@@ -679,7 +679,8 @@ class SenkuroRepository(private val api: SenkuroApi) {
                     frame = c.author?.frame?.original?.url,
                     status = c.author?.status?.original?.url,
                     statusCaption = c.author?.status?.caption,
-                    text = c.content.orEmpty().joinToString("\n") { b -> b.content.orEmpty().joinToString("") { it.text.orEmpty() } }.trim(),
+                    text = richPlainText(c.content.toRich()),
+                    rich = c.content.toRich(),
                     date = c.createdAt?.take(10),
                     createdAt = c.createdAt,
                     up = c.upvotes ?: 0,
@@ -702,16 +703,8 @@ class SenkuroRepository(private val api: SenkuroApi) {
         api.execute("deleteCommentVote", "deleteCommentVote", vars, JsonElement.serializer())
     }
 
-    private fun commentBody(text: String) = kotlinx.serialization.json.JsonArray(
-        text.split("\n").map { line ->
-            buildJsonObject {
-                put("type", "paragraph")
-                if (line.isNotEmpty()) put("content", kotlinx.serialization.json.JsonArray(listOf(
-                    buildJsonObject { put("type", "text"); put("text", line) },
-                )))
-            }
-        },
-    )
+    /** Текст из поля ввода (разметка: **жирный**, ||спойлер||, > цитата, :эмодзи: …) → документ Tiptap для сайта. */
+    private fun commentBody(text: String): JsonArray = RichMarkup.toContent(text)
 
     suspend fun addComment(subjectId: String, text: String) {
         val vars = buildJsonObject {
@@ -723,6 +716,66 @@ class SenkuroRepository(private val api: SenkuroApi) {
             })
         }
         api.execute("createComment", "createComment", vars, JsonElement.serializer())
+    }
+
+    /** Стикер отправляется отдельным комментарием, как на сайте (документ из одного узла-стикера). */
+    suspend fun addStickerComment(subjectId: String, sticker: StickerItem) {
+        val vars = buildJsonObject {
+            put("input", buildJsonObject {
+                put("authorId", AppGraph.account.value?.userId?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("content", JsonArray(listOf(RichTokens.stickerNode(sticker.id, sticker.url))))
+                put("subjectId", subjectId)
+            })
+        }
+        api.execute("createComment", "createComment", vars, JsonElement.serializer())
+    }
+
+    private var setsUser: String? = null
+    private var emojiSetsCache: List<EmojiSetItem>? = null
+    private var stickerSetsCache: List<StickerSetItem>? = null
+
+    private fun dropSetsCacheIfOtherUser() {
+        val uid = AppGraph.account.value?.userId
+        if (uid != setsUser) {
+            setsUser = uid
+            emojiSetsCache = null
+            stickerSetsCache = null
+        }
+    }
+
+    private fun List<SetTitleDto>.setTitle(): String =
+        (firstOrNull { it.lang.equals("RU", true) } ?: firstOrNull())?.content.orEmpty()
+
+    /** Наборы эмодзи пользователя (как в панели на сайте). Кэшируются на время сессии. */
+    suspend fun emojiSets(force: Boolean = false): List<EmojiSetItem> {
+        dropSetsCacheIfOtherUser()
+        emojiSetsCache?.takeIf { !force }?.let { return it }
+        val r = api.execute("fetchUserEmojiSets", "fetchUserEmojiSets", buildJsonObject { }, EmojiSetsResponse.serializer())
+        return r.userEmojiSets.map { s ->
+            EmojiSetItem(
+                s.id, s.titles.setTitle(),
+                s.emojis.sortedBy { it.position ?: 0 }.mapNotNull { e ->
+                    val url = e.image?.original?.url?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    EmojiItem(e.id, e.slug.orEmpty(), e.unicode, url)
+                },
+            )
+        }.filter { it.emojis.isNotEmpty() }.also { emojiSetsCache = it }
+    }
+
+    /** Наборы стикеров пользователя. */
+    suspend fun stickerSets(force: Boolean = false): List<StickerSetItem> {
+        dropSetsCacheIfOtherUser()
+        stickerSetsCache?.takeIf { !force }?.let { return it }
+        val r = api.execute("fetchUserStickerSets", "fetchUserStickerSets", buildJsonObject { }, StickerSetsResponse.serializer())
+        return r.userStickerSets.map { s ->
+            StickerSetItem(
+                s.id, s.titles.setTitle(),
+                s.stickers.sortedBy { it.position ?: 0 }.mapNotNull { st ->
+                    val url = st.image?.original?.url?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    StickerItem(st.id, st.name, url)
+                },
+            )
+        }.filter { it.stickers.isNotEmpty() }.also { stickerSetsCache = it }
     }
 
     suspend fun editComment(commentId: String, text: String) {
