@@ -893,6 +893,9 @@ class SenkuroRepository(private val api: SenkuroApi) {
         val manga = mangaSrc?.let { n ->
             n.id?.let { MangaItem(it, n.slug, pickTitle(n.titles, n.originalName, n.slug), n.cover?.original?.url) }
         }
+        // Как на сайте: ссылка на главу строится из manga.slug прямо из уведомления. Читалка и страница тайтла
+        // ищут тайтл по slug, поэтому пару id→slug запоминаем сразу (иначе «Тайтл не найден», если тайтл не открывали из списков).
+        manga?.let { AppGraph.rememberSlug(it.id, it.slug) }
         val user = nodes.firstOrNull { it.typename == "User" }?.name
         val post = nodes.firstOrNull { it.typename == "Post" }?.title
         val numbers = payload?.chapters.orEmpty().mapNotNull { it.number.text() }
