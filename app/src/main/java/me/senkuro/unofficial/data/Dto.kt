@@ -142,7 +142,7 @@ class ReaderResponse(val mangaChapter: ReaderChapterDto? = null)
 class UserDto(val id: String = "", val slug: String = "", val name: String = "", val avatar: Cover? = null, val frame: Cover? = null)
 
 @Serializable
-class CollectionPreferenceDto(val name: String? = null)
+class CollectionPreferenceDto(val name: String? = null, val visible: Boolean? = null)
 
 @Serializable
 class CollectionDto(
@@ -438,6 +438,20 @@ class PCharacterDto(val id: String = "", val slug: String = "", val name: String
 
 @Serializable
 class PWaifuDto(val id: String = "", val relation: String? = null, val character: PCharacterDto? = null)
+
+/** Сколько закладок в коллекции (профиль пользователя на сайте). */
+@Serializable
+class LibCountDto(val collectionId: String? = null, val entityType: String = "", val count: Long = 0)
+
+@Serializable
+class LibUserDto(
+    val id: String = "",
+    val bookmarkEntityCollectionDistributions: List<LibCountDto> = emptyList(),
+    val bookmarkCollections: List<CollectionDto> = emptyList(),
+)
+
+@Serializable
+class LibResponse(val user: LibUserDto? = null)
 
 @Serializable
 class PStatusCountDto(val entityType: String = "", val status: String = "", val count: Long = 0)

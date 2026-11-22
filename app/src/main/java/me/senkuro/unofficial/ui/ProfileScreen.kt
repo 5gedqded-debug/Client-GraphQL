@@ -59,6 +59,7 @@ fun ProfileScreen(
     onCards: () -> Unit = {},
     onTeams: () -> Unit = {},
     onLibrary: () -> Unit = {},
+    onManga: (me.senkuro.unofficial.data.MangaItem) -> Unit = {},
     onUser: (String) -> Unit = {},
     onRanks: () -> Unit = {},
     onHistory: (String) -> Unit = {},
@@ -160,7 +161,7 @@ fun ProfileScreen(
                     )
                 }
                 if (isOwn) item { TasksCarousel(onOpenTasks) }
-                extra?.let { e -> item { ProfileExtraBlocks(p, e, onUser) } }
+                extra?.let { e -> item { ProfileExtraBlocks(p, e, onUser, isOwn, onManga, if (isOwn) onLibrary else null) } }
                 if (achievements.isNotEmpty()) item {
                     ProfileSection("Достижения · ${achievements.count { it.done }}", "Все ›", onMore = { showAll = true }) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -180,7 +181,7 @@ fun ProfileScreen(
 val LocalCardColor = androidx.compose.runtime.compositionLocalOf<androidx.compose.ui.graphics.Color> { androidx.compose.ui.graphics.Color.Unspecified }
 
 @Composable
-private fun cardColor(): androidx.compose.ui.graphics.Color =
+internal fun cardColor(): androidx.compose.ui.graphics.Color =
     LocalCardColor.current.takeIf { it != androidx.compose.ui.graphics.Color.Unspecified } ?: MaterialTheme.colorScheme.surfaceVariant
 
 @Composable
@@ -315,7 +316,14 @@ private fun yearsWith(createdAt: String?): String? {
 
 /** Блоки профиля как на сайте: статистика, библиотека манги, отношения, друзья, история действий, «Обо мне». */
 @Composable
-private fun ProfileExtraBlocks(p: Profile, e: me.senkuro.unofficial.data.ProfileExtra, onUser: (String) -> Unit) {
+private fun ProfileExtraBlocks(
+    p: Profile,
+    e: me.senkuro.unofficial.data.ProfileExtra,
+    onUser: (String) -> Unit,
+    isOwn: Boolean,
+    onManga: (me.senkuro.unofficial.data.MangaItem) -> Unit,
+    onOpenLibrary: (() -> Unit)?,
+) {
     Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // «Информация» — строки со значками, как блок информации сообщества
         val info = buildList<Triple<androidx.compose.ui.graphics.vector.ImageVector, String, String?>> {
@@ -340,26 +348,7 @@ private fun ProfileExtraBlocks(p: Profile, e: me.senkuro.unofficial.data.Profile
                 }
             }
         }
-        if (e.libraryTotal > 0) Block("Библиотека манги", count = fmt(e.libraryTotal)) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    e.libraryByStatus.forEach { (name, n) -> Chip("$name $n") }
-                }
-                if (e.libraryPreview.isNotEmpty()) androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(e.libraryPreview) { m ->
-                        // карточка как в «Похожих сообществах»: обложка и подпись в рамке
-                        Column(
-                            Modifier.width(104.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.background).padding(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            AsyncImage(m.cover, null, contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxWidth().height(128.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant))
-                            Text(m.title, fontSize = 11.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground)
-                        }
-                    }
-                }
-            }
-        }
+        if (e.libraryTotal > 0) ProfileLibraryBlock(p.slug, p.id, isOwn, e.libraryTotal, onManga, onOpenLibrary)
         if (e.friendsList.isNotEmpty()) Block("Друзья", count = fmt(e.friends)) { PeopleGrid(e.friendsList, onUser) }
         if (e.followsList.isNotEmpty()) Block("Подписки", count = fmt(e.follows)) { PeopleGrid(e.followsList, onUser) }
         if (e.waifus.isNotEmpty()) Block("Отношения", count = e.waifus.size.toString()) {
@@ -390,7 +379,7 @@ private fun ProfileExtraBlocks(p: Profile, e: me.senkuro.unofficial.data.Profile
 }
 
 @Composable
-private fun Block(title: String, count: String? = null, more: String? = null, onMore: () -> Unit = {}, content: @Composable () -> Unit) {
+internal fun Block(title: String, count: String? = null, more: String? = null, onMore: () -> Unit = {}, content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(cardColor()).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),

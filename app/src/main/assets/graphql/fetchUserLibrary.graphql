@@ -1,0 +1,14 @@
+query fetchUserLibrary($slug: String!) {
+  user(slug: $slug) {
+    id
+    bookmarkEntityCollectionDistributions { collectionId entityType count }
+    bookmarkCollections {
+      id
+      slug
+      name
+      entityType
+      system
+      preference { name visible }
+    }
+  }
+}

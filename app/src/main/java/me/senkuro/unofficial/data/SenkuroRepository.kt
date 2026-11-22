@@ -346,6 +346,33 @@ class SenkuroRepository(private val api: SenkuroApi) {
         )
     }
 
+    /**
+     * Категории библиотеки манги пользователя, как в его профиле на сайте: коллекции закладок и число тайтлов в каждой.
+     * Скрытые владельцем коллекции у чужих профилей не показываются. null — не удалось загрузить (виджет покажет только «Все»).
+     */
+    suspend fun userLibrary(slug: String, own: Boolean): UserLibrary? = try {
+        val u = api.execute("fetchUserLibrary", "fetchUserLibrary", buildJsonObject { put("slug", slug) }, LibResponse.serializer()).user
+        u?.let {
+            val counts = it.bookmarkEntityCollectionDistributions
+                .filter { d -> d.entityType.equals("MANGA", true) && d.collectionId != null }
+                .groupBy { d -> d.collectionId!! }
+                .mapValues { (_, v) -> v.sumOf { d -> d.count } }
+            val cols = it.bookmarkCollections
+                .filter { c -> c.entityType?.equals("MANGA", true) != false }
+                .filter { c -> own || c.preference?.visible != false }
+                .mapNotNull { c ->
+                    val n = counts[c.id] ?: 0L
+                    if (n <= 0L) null
+                    else LibraryCollection(c.id, c.preference?.name?.takeIf { s -> s.isNotBlank() } ?: c.name.ifBlank { c.slug }, n)
+                }
+            UserLibrary(cols.sumOf { c -> c.count }, cols)
+        }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
+
     suspend fun bookmarks(userId: String, collectionId: String?, after: String?): BookmarksPage {
         val vars = buildJsonObject {
             put("userId", userId)

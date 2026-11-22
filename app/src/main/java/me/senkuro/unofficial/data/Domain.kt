@@ -101,6 +101,11 @@ data class Account(
     val adsDisabled: Boolean = false,
 )
 
+/** Категория библиотеки пользователя (коллекция закладок) и число тайтлов в ней. */
+data class LibraryCollection(val id: String, val name: String, val count: Long)
+
+data class UserLibrary(val total: Long, val collections: List<LibraryCollection>)
+
 data class BookmarkEntry(val manga: MangaItem, val collectionId: String?, val page: Int?, val number: String?)
 
 data class BookmarksPage(val items: List<BookmarkEntry>, val next: String?)

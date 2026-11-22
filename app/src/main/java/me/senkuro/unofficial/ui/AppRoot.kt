@@ -205,12 +205,13 @@ fun AppRoot() {
                         UnofficialTheme(dark = appDark) { NotificationSettingsScreen(onBack = { nav.popBackStack() }) }
                     }
                     composable(Routes.PROFILE) {
-                        UnofficialTheme(dark = appDark) { ProfileScreen(onUser = { nav.navigate("user/" + Uri.encode(it)) }, onRanks = { nav.navigate(Routes.RANKS) }, onHistory = { nav.navigate("history/" + Uri.encode(it)) }, onBack = { nav.popBackStack() }, onOpenTasks = { nav.navigate(Routes.TASKS) }, onCards = { nav.navigate(Routes.CARDS) }, onTeams = { nav.navigate(Routes.TEAMS) }, onLibrary = { nav.navigate(Routes.LIBRARY) { launchSingleTop = true } }) }
+                        UnofficialTheme(dark = appDark) { ProfileScreen(onUser = { nav.navigate("user/" + Uri.encode(it)) }, onRanks = { nav.navigate(Routes.RANKS) }, onHistory = { nav.navigate("history/" + Uri.encode(it)) }, onBack = { nav.popBackStack() }, onOpenTasks = { nav.navigate(Routes.TASKS) }, onCards = { nav.navigate(Routes.CARDS) }, onTeams = { nav.navigate(Routes.TEAMS) }, onLibrary = { nav.navigate(Routes.LIBRARY) { launchSingleTop = true } }, onManga = openManga) }
                     }
                     composable(Routes.USER, arguments = listOf(navArgument("slug") { type = NavType.StringType })) { b ->
                         UnofficialTheme(dark = appDark) {
                             ProfileScreen(
                                 slug = b.arguments?.getString("slug"),
+                                onManga = openManga,
                                 onUser = { nav.navigate("user/" + Uri.encode(it)) },
                                 onRanks = { nav.navigate(Routes.RANKS) },
                                 onHistory = { nav.navigate("history/" + Uri.encode(it)) },
