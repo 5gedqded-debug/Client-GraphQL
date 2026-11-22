@@ -149,7 +149,7 @@ fun ProfileScreen(
                         ),
                         links = buildList {
                             add(HubLink("История действий", "Недавняя активность") { onHistory(p.id) })
-                            add(HubLink("Топ пользователей", "Рейтинг по активности", onRanks))
+                            if (isOwn) add(HubLink("Топ пользователей", "Рейтинг по активности", onRanks))
                             if (achievements.isNotEmpty()) add(HubLink("Достижения", "$done из ${achievements.size}") { showAll = true })
                             extra?.takeIf { it.libraryTotal > 0 }?.let { add(HubLink("Библиотека манги", fmt(it.libraryTotal), if (isOwn) onLibrary else null)) }
                             if (isOwn) {
